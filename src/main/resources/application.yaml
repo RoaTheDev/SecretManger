@@ -1,1 +1,21 @@
-spring.application.name=SecretManger_ADITI_FINAL
+spring:
+  application:
+    name: SecretManger_ADITI_FINAL
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  profiles:
+    active: local
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: beans
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true

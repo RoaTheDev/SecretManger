@@ -15,7 +15,7 @@ public class CookieUtil {
     @Value("${jwt.cookie-name}")
     private String refreshTokenCookieName;
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.refresh-token.expiration}")
     private Long refreshTokenExpiration;
 
     @Value("${app.cookie.secure}")

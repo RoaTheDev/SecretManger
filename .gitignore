@@ -17,6 +17,7 @@ bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
 **/main/resources/application-local.yaml
+**/main/resources/application-prod.yaml
 ### IntelliJ IDEA ###
 .idea
 *.iws

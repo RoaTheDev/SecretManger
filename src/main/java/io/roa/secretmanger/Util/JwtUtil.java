@@ -25,10 +25,10 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.access-token.expiration}")
     private Long accessTokenExpiration;
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.refresh-token.expiration}")
     private Long refreshTokenExpiration;
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsTFunction) {
@@ -47,12 +47,12 @@ public class JwtUtil {
 
     public Boolean isAccessToken(String token) {
         Claims claims = extractAllClaims(token);
-        return "ACCESS".equals(claims.get("type"));
+        return "ACCESS".equals(claims != null ? claims.get("type") : null);
     }
 
     public Boolean isRefreshToken(String token) {
         Claims claims = extractAllClaims(token);
-        return "REFRESH".equals(claims.get("type"));
+        return "REFRESH".equals(claims != null ? claims.get("type") : null);
     }
 
     public String generateAccessToken(UserDetails userDetails) {

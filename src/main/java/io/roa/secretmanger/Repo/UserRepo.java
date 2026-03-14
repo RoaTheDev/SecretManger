@@ -23,7 +23,7 @@ public interface UserRepo extends JpaRepository<User, UUID> {
 
     long countByRole(UserRole role);
 
-    Page<UserSummaryProjection> findAllProjected(Pageable pageable);
+    Page<UserSummaryProjection> findAllProjectedBy(Pageable pageable);
 
     @Query("""
             SELECT u FROM User u
@@ -38,4 +38,6 @@ public interface UserRepo extends JpaRepository<User, UUID> {
             AND u.isActive = true
             """)
     List<UserSummaryProjection> findAllProjectApprovers();
+
+    List<User> findAllByRole(UserRole role);
 }

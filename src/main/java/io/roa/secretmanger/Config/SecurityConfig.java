@@ -26,7 +26,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // enables @PreAuthorize on controllers
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
@@ -48,7 +48,7 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/v3/api-docs/**",
                                 "/docs/**",
-                                "/swagger-ui/++",
+                                "/swagger-ui/**",
                                 "/actuator/**"
                         ).permitAll()
                         .anyRequest().authenticated()

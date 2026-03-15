@@ -21,15 +21,15 @@ import java.util.UUID;
 @Slf4j
 public class AuditServiceImpl implements AuditService {
 
-    private final AuditLogRepo auditLogRepository;
-    private final UserRepo userRepository;
+    private final AuditLogRepo auditLogRepo;
+    private final UserRepo userRepo;
 
     @Async("auditExecutor")
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void log(UUID actorId, String action, String targetType,
                     UUID targetId, Map<String, Object> metadata) {
         try {
-            User actor = userRepository.findById(actorId).orElse(null);
+            User actor = userRepo.findById(actorId).orElse(null);
 
             AuditLog auditLog = new AuditLog();
             auditLog.setActor(actor);
@@ -38,7 +38,7 @@ public class AuditServiceImpl implements AuditService {
             auditLog.setTargetId(targetId);
             auditLog.setMetadata(metadata);
 
-            auditLogRepository.save(auditLog);
+            auditLogRepo.save(auditLog);
         } catch (Exception e) {
             log.error("Async audit logging failed [action={}, actor={}, target={}]: {}",
                     action, actorId, targetId, e.getMessage());

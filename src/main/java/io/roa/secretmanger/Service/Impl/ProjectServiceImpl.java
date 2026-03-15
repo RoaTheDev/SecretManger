@@ -26,8 +26,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProjectServiceImpl implements ProjectService {
 
-    private final ProjectRepo projectRepository;
-    private final UserRepo userRepository;
+    private final ProjectRepo projectRepo;
+    private final UserRepo userRepo;
     private final ProjectMapper projectMapper;
     private final SecurityContextUtil securityContext;
 
@@ -42,7 +42,7 @@ public class ProjectServiceImpl implements ProjectService {
         project.setCreatedBy(currentUser);
         project.setMembers(List.of(currentUser));
 
-        return new ProjectDto.ProjectCreatedResponse(projectRepository.save(project).getId());
+        return new ProjectDto.ProjectCreatedResponse(projectRepo.save(project).getId());
     }
 
     @Transactional
@@ -50,7 +50,7 @@ public class ProjectServiceImpl implements ProjectService {
     public void addMember(UUID projectId, ProjectDto.AddMemberRequest request) {
         Project project = findProjectOrThrow(projectId);
 
-        User user = userRepository.findById(request.userId())
+        User user = userRepo.findById(request.userId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (project.getMembers().stream().anyMatch(m -> m.getId().equals(request.userId()))) {
@@ -58,7 +58,7 @@ public class ProjectServiceImpl implements ProjectService {
         }
 
         project.getMembers().add(user);
-        projectRepository.save(project);
+        projectRepo.save(project);
     }
 
     @Transactional
@@ -66,14 +66,14 @@ public class ProjectServiceImpl implements ProjectService {
     public void removeMember(UUID projectId, UUID userId) {
         Project project = findProjectOrThrow(projectId);
         project.getMembers().removeIf(m -> m.getId().equals(userId));
-        projectRepository.save(project);
+        projectRepo.save(project);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<ProjectDto.ProjectSummary> getMyProjects(Pageable pageable) {
         UUID currentUserId = securityContext.getCurrentUserId();
         return PageResponse.of(
-                projectRepository.findSummariesForUser(currentUserId, pageable)
+                projectRepo.findSummariesForUser(currentUserId, pageable)
                         .map(projectMapper::toSummary)
         );
     }
@@ -82,7 +82,7 @@ public class ProjectServiceImpl implements ProjectService {
     public ProjectDto.ProjectDetail getDetail(UUID projectId) {
         Project project = findProjectOrThrow(projectId);
 
-        List<ProjectDto.MemberSummary> members = projectRepository
+        List<ProjectDto.MemberSummary> members = projectRepo
                 .findMembersByProjectId(projectId)
                 .stream()
                 .map(projectMapper::toMemberSummary)
@@ -98,11 +98,11 @@ public class ProjectServiceImpl implements ProjectService {
     }
     @Cacheable(value = CacheConfig.MEMBERSHIP, key = "#projectId + ':' + #userId")
     public boolean isMember(UUID projectId, UUID userId) {
-        return projectRepository.isMember(projectId, userId);
+        return projectRepo.isMember(projectId, userId);
     }
 
     private Project findProjectOrThrow(UUID projectId) {
-        return projectRepository.findById(projectId)
+        return projectRepo.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
     }
 }

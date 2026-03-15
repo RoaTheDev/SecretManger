@@ -31,9 +31,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CredentialServiceImpl implements CredentialService {
 
-    private final CredentialRepo credentialRepository;
-    private final ProjectRepo projectRepository;
-    private final ApprovalRequestRepo approvalRequestRepository;
+    private final CredentialRepo credentialRepo;
+    private final ProjectRepo projectRepo;
+    private final ApprovalRequestRepo approvalRequestRepo;
     private final CryptoService cryptoService;
     private final CredentialMapper credentialMapper;
     private final SecurityContextUtil securityContext;
@@ -43,7 +43,7 @@ public class CredentialServiceImpl implements CredentialService {
     public CredentialDto.CredentialCreatedResponse create(CredentialDto.CreateCredentialRequest request) {
         User currentUser = securityContext.getCurrentUser();
 
-        var project = projectRepository.findById(request.projectId())
+        var project = projectRepo.findById(request.projectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
 
         Credential credential = new Credential();
@@ -54,7 +54,7 @@ public class CredentialServiceImpl implements CredentialService {
         credential.setAccessTier(request.accessTier());
         credential.setCreatedBy(currentUser);
 
-        return new CredentialDto.CredentialCreatedResponse(credentialRepository.save(credential).getId());
+        return new CredentialDto.CredentialCreatedResponse(credentialRepo.save(credential).getId());
     }
 
 
@@ -62,7 +62,7 @@ public class CredentialServiceImpl implements CredentialService {
     public PageResponse<CredentialDto.CredentialSummary> listByProject(UUID projectId, Pageable pageable) {
         guardMembership(projectId);
         return PageResponse.of(
-                credentialRepository.findSummariesByProject(projectId, pageable)
+                credentialRepo.findSummariesByProject(projectId, pageable)
                         .map(credentialMapper::toSummary)
         );
     }
@@ -70,7 +70,7 @@ public class CredentialServiceImpl implements CredentialService {
     @Transactional(readOnly = true)
     @Cacheable(value = CacheConfig.CREDENTIAL, key = "#credentialId")
     public CredentialDto.CredentialDetail getDetail(UUID credentialId) {
-        var projection = credentialRepository.findDetailById(credentialId)
+        var projection = credentialRepo.findDetailById(credentialId)
                 .orElseThrow(() -> new ResourceNotFoundException("Credential not found"));
 
         guardMembership(projection.getId());
@@ -80,16 +80,16 @@ public class CredentialServiceImpl implements CredentialService {
     @Transactional
     @CacheEvict(value = CacheConfig.CREDENTIAL, key = "#credentialId")
     public void delete(UUID credentialId) {
-        credentialRepository.findById(credentialId)
+        credentialRepo.findById(credentialId)
                 .orElseThrow(() -> new ResourceNotFoundException("Credential not found"));
-        credentialRepository.deleteById(credentialId);
+        credentialRepo.deleteById(credentialId);
     }
     @Audited(action = "CREDENTIAL_ACCESSED", targetType = "CREDENTIAL")
     @Transactional(readOnly = true)
     public CredentialDto.CredentialRevealResponse reveal(UUID credentialId) {
         UUID currentUserId = securityContext.getCurrentUserId();
 
-        boolean approved = approvalRequestRepository
+        boolean approved = approvalRequestRepo
                 .findByCredentialIdAndRequestedByIdAndStatus(
                         credentialId, currentUserId, ApprovalStatus.APPROVED)
                 .map(ApprovalRequest::isQuorumReached)
@@ -100,7 +100,7 @@ public class CredentialServiceImpl implements CredentialService {
                     "Access not approved yet. Submit a request and wait for quorum.");
         }
 
-        Credential credential = credentialRepository.findById(credentialId)
+        Credential credential = credentialRepo.findById(credentialId)
                 .orElseThrow(() -> new ResourceNotFoundException("Credential not found"));
 
         return new CredentialDto.CredentialRevealResponse(
@@ -113,7 +113,7 @@ public class CredentialServiceImpl implements CredentialService {
 
     private void guardMembership(UUID projectId) {
         UUID userId = securityContext.getCurrentUserId();
-        if (!projectRepository.isMember(projectId, userId)) {
+        if (!projectRepo.isMember(projectId, userId)) {
             throw new ProjectAccessDeniedException("You are not a member of this project");
         }
     }

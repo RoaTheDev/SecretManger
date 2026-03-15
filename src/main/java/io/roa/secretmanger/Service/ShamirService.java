@@ -6,5 +6,9 @@ import java.util.UUID;
 public interface ShamirService {
     void splitAndDistribute();
 
+    boolean isInitialized();
+
+    int getTotalShares();
+
     String reconstructMasterKey(Map<UUID, String> adminVerifiedIds);
 }

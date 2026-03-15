@@ -23,8 +23,8 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ShamirServiceImpl implements ShamirService {
 
-    private final ShamirShareRepo shamirShareRepository;
-    private final UserRepo userRepository;
+    private final ShamirShareRepo shamirShareRepo;
+    private final UserRepo userRepo;
     private final CryptoService cryptoService;
 
     @Value("${app.master-key}")
@@ -33,18 +33,19 @@ public class ShamirServiceImpl implements ShamirService {
 
     @Transactional
     public void splitAndDistribute() {
-        if (shamirShareRepository.count() > 0) {
+        if (shamirShareRepo.count() > 0) {
             throw new ShamirAlreadyInitializedException(
                     "Shamir shares have already been distributed");
         }
 
-        List<User> admins = userRepository.findAllByRole((UserRole.ADMIN));
+        List<User> admins = userRepo.findAllByRole((UserRole.ADMIN));
         if (admins.isEmpty()) {
             throw new ResourceNotFoundException("No admin users found to distribute shares to");
         }
         int n = admins.size();
 
-        Scheme scheme = new Scheme(new SecureRandom(), n, n);
+        int k = admins.size() - (admins.size() / 2);
+        Scheme scheme = new Scheme(new SecureRandom(), n, k);
         Map<Integer, byte[]> shares = scheme.split(
                 Base64.getDecoder().decode(masterKeyBase64));
 
@@ -58,7 +59,7 @@ public class ShamirServiceImpl implements ShamirService {
             row.setShareIndex(index);
             row.setEncryptedShare(encryptedShare);
 
-            shamirShareRepository.save(row);
+            shamirShareRepo.save(row);
             index++;
         }
     }
@@ -70,7 +71,7 @@ public class ShamirServiceImpl implements ShamirService {
             Map<Integer, byte[]> shares = new HashMap<>();
 
             for (UUID adminId : adminVerifiedIds.keySet()) {
-                ShamirShare row = shamirShareRepository.findByAdminId(adminId)
+                ShamirShare row = shamirShareRepo.findByAdminId(adminId)
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 "No share found for admin: " + adminId));
 
@@ -79,7 +80,7 @@ public class ShamirServiceImpl implements ShamirService {
                         Base64.getDecoder().decode(decryptedShare));
             }
 
-            int totalShares = (int) shamirShareRepository.count();
+            int totalShares = (int) shamirShareRepo.count();
             Scheme scheme = new Scheme(new SecureRandom(), totalShares, shares.size());
 
             return Base64.getEncoder().encodeToString(scheme.join(shares));
@@ -90,11 +91,11 @@ public class ShamirServiceImpl implements ShamirService {
 
     @Transactional(readOnly = true)
     public boolean isInitialized() {
-        return shamirShareRepository.count() > 0;
+        return shamirShareRepo.count() > 0;
     }
 
     @Transactional(readOnly = true)
     public int getTotalShares() {
-        return (int) shamirShareRepository.count();
+        return (int) shamirShareRepo.count();
     }
 }

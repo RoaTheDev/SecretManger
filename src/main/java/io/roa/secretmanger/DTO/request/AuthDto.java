@@ -22,26 +22,31 @@ public class AuthDto {
             String password,
 
             UserRole role
-    ) {}
+    ) {
+    }
 
     public record LoginRequest(
             @NotBlank @Email
             String email,
 
             @NotBlank
+            @NotBlank @Size(min = 8, max = 100)
             String password
-    ) {}
+    ) {
+    }
 
 
     public record LoginResponse(
             String accessToken,
             UserSummary user
-    ) {}
+    ) {
+    }
 
     public record UserSummary(
             UUID id,
             String name,
             String email,
             UserRole role
-    ) {}
+    ) {
+    }
 }

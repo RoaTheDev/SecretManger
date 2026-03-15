@@ -33,10 +33,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ApprovalServiceImpl implements ApprovalService {
 
-    private final ApprovalRequestRepo approvalRequestRepository;
-    private final ApprovalVoteRepo approvalVoteRepository;
-    private final CredentialRepo credentialRepository;
-    private final UserRepo userRepository;
+    private final ApprovalRequestRepo approvalRequestRepo;
+    private final ApprovalVoteRepo approvalVoteRepo;
+    private final CredentialRepo credentialRepo;
+    private final UserRepo userRepo;
     private final ApprovalMapper approvalMapper;
     private final SecurityContextUtil securityContext;
 
@@ -45,11 +45,11 @@ public class ApprovalServiceImpl implements ApprovalService {
     public ApprovalDto.AccessRequestedResponse requestAccess(UUID credentialId) {
         User currentUser = securityContext.getCurrentUser();
 
-        approvalRequestRepository.findByCredentialIdAndRequestedByIdAndStatus(credentialId, currentUser.getId(), ApprovalStatus.PENDING).ifPresent(r -> {
+        approvalRequestRepo.findByCredentialIdAndRequestedByIdAndStatus(credentialId, currentUser.getId(), ApprovalStatus.PENDING).ifPresent(r -> {
             throw new PendingRequestExistsException("You already have a pending request for this credential");
         });
 
-        Credential credential = credentialRepository.findById(credentialId).orElseThrow(() -> new ResourceNotFoundException("Credential not found"));
+        Credential credential = credentialRepo.findById(credentialId).orElseThrow(() -> new ResourceNotFoundException("Credential not found"));
 
         int quorum = calculateQuorum(credential.getAccessTier());
 
@@ -60,7 +60,7 @@ public class ApprovalServiceImpl implements ApprovalService {
         request.setQuorumRequired(quorum);
         request.setStatus(ApprovalStatus.PENDING);
 
-        ApprovalRequest saved = approvalRequestRepository.save(request);
+        ApprovalRequest saved = approvalRequestRepo.save(request);
 
         return new ApprovalDto.AccessRequestedResponse(saved.getId(), saved.getStatus(), saved.getQuorumRequired());
     }
@@ -71,11 +71,11 @@ public class ApprovalServiceImpl implements ApprovalService {
     public ApprovalDto.VoteCastResponse castVote(UUID requestId, ApprovalDto.CastVoteRequest voteRequest) {
         User currentUser = securityContext.getCurrentUser();
 
-        if (approvalVoteRepository.existsByRequestIdAndVoterId(requestId, currentUser.getId())) {
+        if (approvalVoteRepo.existsByRequestIdAndVoterId(requestId, currentUser.getId())) {
             throw new AlreadyVotedException("You have already voted on this request");
         }
 
-        ApprovalRequest request = approvalRequestRepository.findById(requestId).orElseThrow(() -> new ResourceNotFoundException("Approval request not found"));
+        ApprovalRequest request = approvalRequestRepo.findById(requestId).orElseThrow(() -> new ResourceNotFoundException("Approval request not found"));
 
         if (request.getStatus() != ApprovalStatus.PENDING) {
             throw new ValidationException("This request is no longer pending");
@@ -89,7 +89,7 @@ public class ApprovalServiceImpl implements ApprovalService {
         vote.setRequest(request);
         vote.setVoter(currentUser);
         vote.setVote(voteRequest.vote());
-        approvalVoteRepository.save(vote);
+        approvalVoteRepo.save(vote);
 
         updateRequestStatus(request);
 
@@ -101,11 +101,11 @@ public class ApprovalServiceImpl implements ApprovalService {
     public PageResponse<ApprovalDto.ApprovalRequestSummary> getPendingForCurrentUser(Pageable pageable) {
         UUID currentUserId = securityContext.getCurrentUserId();
 
-        return PageResponse.of(approvalRequestRepository.findPendingForVoter(currentUserId, pageable).map(projection -> {
+        return PageResponse.of(approvalRequestRepo.findPendingForVoter(currentUserId, pageable).map(projection -> {
             ApprovalDto.ApprovalRequestSummary summary = approvalMapper.toSummary(projection);
 
-            long approveCount = approvalVoteRepository.countByRequestIdAndVote(projection.getId(), VoteChoice.APPROVE);
-            long rejectCount = approvalVoteRepository.countByRequestIdAndVote(projection.getId(), VoteChoice.REJECT);
+            long approveCount = approvalVoteRepo.countByRequestIdAndVote(projection.getId(), VoteChoice.APPROVE);
+            long rejectCount = approvalVoteRepo.countByRequestIdAndVote(projection.getId(), VoteChoice.REJECT);
 
             return new ApprovalDto.ApprovalRequestSummary(summary.id(), summary.credentialId(), summary.credentialName(), summary.requestedBy(), summary.accessTier(), summary.status(), summary.quorumRequired(), approveCount, rejectCount, summary.createdAt());
         }));
@@ -113,8 +113,8 @@ public class ApprovalServiceImpl implements ApprovalService {
 
 
     private void updateRequestStatus(ApprovalRequest request) {
-        long approveCount = approvalVoteRepository.countByRequestIdAndVote(request.getId(), VoteChoice.APPROVE);
-        long rejectCount = approvalVoteRepository.countByRequestIdAndVote(request.getId(), VoteChoice.REJECT);
+        long approveCount = approvalVoteRepo.countByRequestIdAndVote(request.getId(), VoteChoice.APPROVE);
+        long rejectCount = approvalVoteRepo.countByRequestIdAndVote(request.getId(), VoteChoice.REJECT);
 
         if (approveCount >= request.getQuorumRequired()) {
             request.setStatus(ApprovalStatus.APPROVED);
@@ -126,12 +126,12 @@ public class ApprovalServiceImpl implements ApprovalService {
             request.setResolvedAt(LocalDateTime.now());
         }
 
-        approvalRequestRepository.save(request);
+        approvalRequestRepo.save(request);
     }
 
     private int calculateQuorum(AccessTier tier) {
         if (tier == AccessTier.ADMIN) {
-            return (int) userRepository.countByRole(UserRole.ADMIN);
+            return (int) userRepo.countByRole(UserRole.ADMIN);
         }
         return 3; // TEAM_LEAD + PROJECT_MANAGER + 1 ADMIN
     }

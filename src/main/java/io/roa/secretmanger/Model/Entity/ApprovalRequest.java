@@ -46,6 +46,9 @@ public class ApprovalRequest extends BaseEntity {
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+
     @OneToMany(mappedBy = "request", fetch = FetchType.LAZY)
     private List<ApprovalVote> votes;
 }

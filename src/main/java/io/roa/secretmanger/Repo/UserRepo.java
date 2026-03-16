@@ -1,6 +1,5 @@
 package io.roa.secretmanger.Repo;
 
-
 import io.roa.secretmanger.DTO.projection.UserSummaryProjection;
 import io.roa.secretmanger.Model.Entity.User;
 import io.roa.secretmanger.Model.Value.UserRole;
@@ -17,6 +16,7 @@ import java.util.UUID;
 
 @Repository
 public interface UserRepo extends JpaRepository<User, UUID> {
+
     Optional<User> findByEmail(String email);
 
     boolean existsByEmail(String email);
@@ -39,5 +39,12 @@ public interface UserRepo extends JpaRepository<User, UUID> {
             """)
     List<UserSummaryProjection> findAllProjectApprovers();
 
-    List<User> findAllByRole(UserRole role);
+    @Query("""
+            SELECT COUNT(u) FROM User u
+            WHERE u.role IN ('TEAM_LEAD', 'PROJECT_MANAGER', 'ADMIN')
+            AND u.isActive = true
+            """)
+    long countActiveProjectApprovers();
+
+    List<User> findAllByRole(UserRole userRole);
 }

@@ -2,13 +2,16 @@ package io.roa.secretmanger.Service.Impl;
 
 import io.roa.secretmanger.Annotation.Audited;
 import io.roa.secretmanger.Config.CacheConfig;
-import io.roa.secretmanger.DTO.request.CredentialDto;
-import io.roa.secretmanger.DTO.response.PageResponse;
+import io.roa.secretmanger.DTO.request.ApprovalRequest.CreateCredentialRequest;
+import io.roa.secretmanger.DTO.response.*;
+import io.roa.secretmanger.DTO.response.Shamir.CredentialCreatedResponse;
+import io.roa.secretmanger.DTO.response.Shamir.CredentialDetail;
+import io.roa.secretmanger.DTO.response.Shamir.CredentialRevealResponse;
+import io.roa.secretmanger.DTO.response.Shamir.CredentialSummary;
 import io.roa.secretmanger.Exception.ProjectAccessDeniedException;
 import io.roa.secretmanger.Exception.QuorumNotReachedException;
 import io.roa.secretmanger.Exception.ResourceNotFoundException;
 import io.roa.secretmanger.Mapper.CredentialMapper;
-import io.roa.secretmanger.Model.Entity.ApprovalRequest;
 import io.roa.secretmanger.Model.Entity.Credential;
 import io.roa.secretmanger.Model.Entity.User;
 import io.roa.secretmanger.Model.Value.ApprovalStatus;
@@ -17,6 +20,7 @@ import io.roa.secretmanger.Repo.CredentialRepo;
 import io.roa.secretmanger.Repo.ProjectRepo;
 import io.roa.secretmanger.Service.CredentialService;
 import io.roa.secretmanger.Service.CryptoService;
+import io.roa.secretmanger.Service.ProjectService;
 import io.roa.secretmanger.Util.SecurityContextUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -25,6 +29,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -37,10 +42,10 @@ public class CredentialServiceImpl implements CredentialService {
     private final CryptoService cryptoService;
     private final CredentialMapper credentialMapper;
     private final SecurityContextUtil securityContext;
-
+    private final ProjectService projectService;
 
     @Transactional
-    public CredentialDto.CredentialCreatedResponse create(CredentialDto.CreateCredentialRequest request) {
+    public CredentialCreatedResponse create(CreateCredentialRequest request) {
         User currentUser = securityContext.getCurrentUser();
 
         var project = projectRepo.findById(request.projectId())
@@ -54,27 +59,7 @@ public class CredentialServiceImpl implements CredentialService {
         credential.setAccessTier(request.accessTier());
         credential.setCreatedBy(currentUser);
 
-        return new CredentialDto.CredentialCreatedResponse(credentialRepo.save(credential).getId());
-    }
-
-
-    @Transactional(readOnly = true)
-    public PageResponse<CredentialDto.CredentialSummary> listByProject(UUID projectId, Pageable pageable) {
-        guardMembership(projectId);
-        return PageResponse.of(
-                credentialRepo.findSummariesByProject(projectId, pageable)
-                        .map(credentialMapper::toSummary)
-        );
-    }
-
-    @Transactional(readOnly = true)
-    @Cacheable(value = CacheConfig.CREDENTIAL, key = "#credentialId")
-    public CredentialDto.CredentialDetail getDetail(UUID credentialId) {
-        var projection = credentialRepo.findDetailById(credentialId)
-                .orElseThrow(() -> new ResourceNotFoundException("Credential not found"));
-
-        guardMembership(projection.getId());
-        return credentialMapper.toDetail(projection);
+        return new CredentialCreatedResponse(credentialRepo.save(credential).getId());
     }
 
     @Transactional
@@ -84,36 +69,59 @@ public class CredentialServiceImpl implements CredentialService {
                 .orElseThrow(() -> new ResourceNotFoundException("Credential not found"));
         credentialRepo.deleteById(credentialId);
     }
+
+
+    @Transactional(readOnly = true)
+    public PageResponse<CredentialSummary> listByProject(UUID projectId, Pageable pageable) {
+        guardMembership(projectId);
+        return PageResponse.of(
+                credentialRepo.findSummariesByProject(projectId, pageable)
+                        .map(credentialMapper::toSummary)
+        );
+    }
+
+    @Cacheable(value = CacheConfig.CREDENTIAL, key = "#credentialId")
+    @Transactional(readOnly = true)
+    public CredentialDetail getDetail(UUID credentialId) {
+        var projection = credentialRepo.findDetailById(credentialId)
+                .orElseThrow(() -> new ResourceNotFoundException("Credential not found"));
+
+        guardMembership(projection.getId());
+        return credentialMapper.toDetail(projection);
+    }
+
     @Audited(action = "CREDENTIAL_ACCESSED", targetType = "CREDENTIAL")
     @Transactional(readOnly = true)
-    public CredentialDto.CredentialRevealResponse reveal(UUID credentialId) {
+    public CredentialRevealResponse reveal(UUID credentialId) {
         UUID currentUserId = securityContext.getCurrentUserId();
 
-        boolean approved = approvalRequestRepo
+        var approvedRequest = approvalRequestRepo
                 .findByCredentialIdAndRequestedByIdAndStatus(
                         credentialId, currentUserId, ApprovalStatus.APPROVED)
-                .map(ApprovalRequest::isQuorumReached)
-                .orElse(false);
+                .orElseThrow(() -> new QuorumNotReachedException(
+                        "Access not approved yet. Submit a request and wait for quorum."));
 
-        if (!approved) {
+        if (approvedRequest.getExpiresAt() != null
+                && LocalDateTime.now().isAfter(approvedRequest.getExpiresAt())) {
             throw new QuorumNotReachedException(
-                    "Access not approved yet. Submit a request and wait for quorum.");
+                    "Your access has expired. Please submit a new request.");
         }
 
         Credential credential = credentialRepo.findById(credentialId)
                 .orElseThrow(() -> new ResourceNotFoundException("Credential not found"));
 
-        return new CredentialDto.CredentialRevealResponse(
+        return new CredentialRevealResponse(
                 credential.getId(),
                 credential.getName(),
                 credential.getType(),
-                cryptoService.decrypt(credential.getEncryptedValue())
+                cryptoService.decrypt(credential.getEncryptedValue()),
+                approvedRequest.getExpiresAt()
         );
     }
 
     private void guardMembership(UUID projectId) {
         UUID userId = securityContext.getCurrentUserId();
-        if (!projectRepo.isMember(projectId, userId)) {
+        if (!projectService.isMember(projectId, userId)) {
             throw new ProjectAccessDeniedException("You are not a member of this project");
         }
     }

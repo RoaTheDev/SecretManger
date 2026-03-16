@@ -1,6 +1,7 @@
 package io.roa.secretmanger.Model.Entity;
 
 import io.roa.secretmanger.Model.Value.AccessTier;
+import io.roa.secretmanger.Model.Value.ApprovalPolicy;
 import io.roa.secretmanger.Model.Value.CredentialType;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -36,6 +37,10 @@ public class Credential extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "access_tier", nullable = false, length = 20)
     private AccessTier accessTier;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_policy", nullable = false, length = 20)
+    private ApprovalPolicy approvalPolicy = ApprovalPolicy.STANDARD;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")

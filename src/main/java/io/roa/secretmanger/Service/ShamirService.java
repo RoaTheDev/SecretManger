@@ -1,6 +1,7 @@
 package io.roa.secretmanger.Service;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public interface ShamirService {
@@ -10,5 +11,5 @@ public interface ShamirService {
 
     int getTotalShares();
 
-    String reconstructMasterKey(Map<UUID, String> adminVerifiedIds);
+    String reconstructMasterKey(Set<UUID> adminIds );
 }

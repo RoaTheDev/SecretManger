@@ -1,10 +1,6 @@
--- ========================
--- SECRETS MANAGER SCHEMA
--- ========================
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- Users
 CREATE TABLE users (
                        id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                        name          VARCHAR(100)  NOT NULL,
@@ -19,7 +15,6 @@ CREATE TABLE users (
 CREATE INDEX idx_users_email  ON users (email);
 CREATE INDEX idx_users_role   ON users (role);
 
--- Projects
 CREATE TABLE projects (
                           id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                           name        VARCHAR(255) NOT NULL,
@@ -29,14 +24,12 @@ CREATE TABLE projects (
                           updated_at  TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Project Members (join table)
 CREATE TABLE project_members (
                                  project_id UUID REFERENCES projects (id) ON DELETE CASCADE,
                                  user_id    UUID REFERENCES users (id)    ON DELETE CASCADE,
                                  PRIMARY KEY (project_id, user_id)
 );
 
--- Credentials
 CREATE TABLE credentials (
                              id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                              project_id      UUID REFERENCES projects (id) ON DELETE CASCADE,
@@ -52,7 +45,6 @@ CREATE TABLE credentials (
 CREATE INDEX idx_credentials_project ON credentials (project_id);
 CREATE INDEX idx_credentials_tier    ON credentials (access_tier);
 
--- Shamir Shares (one per admin)
 CREATE TABLE shamir_shares (
                                id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                                admin_id        UUID REFERENCES users (id) UNIQUE,
@@ -62,7 +54,6 @@ CREATE TABLE shamir_shares (
                                updated_at      TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Approval Requests
 CREATE TABLE approval_requests (
                                    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                                    credential_id   UUID REFERENCES credentials (id) ON DELETE CASCADE,
@@ -80,7 +71,6 @@ CREATE INDEX idx_approval_requests_credential ON approval_requests (credential_i
 CREATE INDEX idx_approval_requests_status     ON approval_requests (status);
 CREATE INDEX idx_approval_requests_requester  ON approval_requests (requested_by);
 
--- Approval Votes
 CREATE TABLE approval_votes (
                                 id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                                 request_id UUID REFERENCES approval_requests (id) ON DELETE CASCADE,
@@ -92,7 +82,6 @@ CREATE TABLE approval_votes (
 
 CREATE INDEX idx_approval_votes_request ON approval_votes (request_id);
 
--- Audit Logs
 CREATE TABLE audit_logs (
                             id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                             actor_id     UUID REFERENCES users (id),
@@ -107,3 +96,14 @@ CREATE INDEX idx_audit_logs_actor       ON audit_logs (actor_id);
 CREATE INDEX idx_audit_logs_action      ON audit_logs (action);
 CREATE INDEX idx_audit_logs_target      ON audit_logs (target_id);
 CREATE INDEX idx_audit_logs_performed_at ON audit_logs (performed_at DESC);
+ALTER TABLE approval_requests
+    ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;
+
+ALTER TABLE approval_requests
+    ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;
+CREATE INDEX IF NOT EXISTS idx_approval_requests_expires_at
+    ON approval_requests (expires_at)
+    WHERE expires_at IS NOT NULL;
+
+ALTER TABLE credentials
+    ADD COLUMN approval_policy VARCHAR(20) NOT NULL DEFAULT 'STANDARD';

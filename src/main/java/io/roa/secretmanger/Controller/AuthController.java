@@ -1,6 +1,8 @@
 package io.roa.secretmanger.Controller;
 
-import io.roa.secretmanger.DTO.request.AuthDto;
+import io.roa.secretmanger.DTO.request.Auth.LoginRequest;
+import io.roa.secretmanger.DTO.response.LoginResponse;
+import io.roa.secretmanger.DTO.request.Auth.RegisterRequest;
 import io.roa.secretmanger.DTO.response.ApiRes;
 import io.roa.secretmanger.Service.AuthService;
 import io.roa.secretmanger.Util.CookieUtil;
@@ -21,20 +23,20 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiRes<Void> register(@Valid @RequestBody AuthDto.RegisterRequest request) {
+    public ApiRes<Void> register(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
         return ApiRes.success("User registered successfully", null);
     }
 
     @PostMapping("/login")
-    public ApiRes<AuthDto.LoginResponse> login(@Valid @RequestBody AuthDto.LoginRequest request,
-                                               HttpServletResponse response) {
+    public ApiRes<LoginResponse> login(@Valid @RequestBody LoginRequest request,
+                                       HttpServletResponse response) {
         return ApiRes.success(authService.login(request, response));
     }
 
     @PostMapping("/refresh")
-    public ApiRes<AuthDto.LoginResponse> refresh(HttpServletRequest request,
-                                                 HttpServletResponse response) {
+    public ApiRes<LoginResponse> refresh(HttpServletRequest request,
+                                         HttpServletResponse response) {
         String refreshToken = cookieUtil.getRefreshTokenFromCookie(request)
                 .orElseThrow(() -> new io.roa.secretmanger.Exception.UnauthorizedException(
                         "No refresh token found"));

@@ -1,7 +1,7 @@
 package io.roa.secretmanger.Mapper;
 
 import io.roa.secretmanger.DTO.projection.AuditLogProjection;
-import io.roa.secretmanger.DTO.request.AuditLogResponse;
+import io.roa.secretmanger.DTO.response.AuditLogResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

@@ -1,6 +1,8 @@
 package io.roa.secretmanger.Service.Impl;
 
-import io.roa.secretmanger.DTO.request.AuthDto;
+import io.roa.secretmanger.DTO.request.Auth.LoginRequest;
+import io.roa.secretmanger.DTO.response.LoginResponse;
+import io.roa.secretmanger.DTO.request.Auth.RegisterRequest;
 import io.roa.secretmanger.Exception.DuplicateResourceException;
 import io.roa.secretmanger.Exception.ResourceNotFoundException;
 import io.roa.secretmanger.Exception.UnauthorizedException;
@@ -31,7 +33,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserMapper userMapper;
 
     @Transactional
-    public void register(AuthDto.RegisterRequest request) {
+    public void register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new DuplicateResourceException("Email already in use");
         }
@@ -46,7 +48,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Transactional(readOnly = true)
-    public AuthDto.LoginResponse login(AuthDto.LoginRequest request, HttpServletResponse response) {
+    public LoginResponse login(LoginRequest request, HttpServletResponse response) {
         Authentication auth = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password())
         );
@@ -58,11 +60,11 @@ public class AuthServiceImpl implements AuthService {
 
         cookieUtil.addRefreshTokenCookie(response, refreshToken);
 
-        return new AuthDto.LoginResponse(accessToken, userMapper.toDto(user));
+        return new LoginResponse(accessToken, userMapper.toDto(user));
     }
 
     @Transactional(readOnly = true)
-    public AuthDto.LoginResponse refresh(String refreshToken, HttpServletResponse response) {
+    public LoginResponse refresh(String refreshToken, HttpServletResponse response) {
         if (!jwtUtil.isRefreshToken(refreshToken)) {
             throw new UnauthorizedException("Invalid refresh token");
         }
@@ -80,7 +82,7 @@ public class AuthServiceImpl implements AuthService {
 
         cookieUtil.addRefreshTokenCookie(response, newRefreshToken);
 
-        return new AuthDto.LoginResponse(newAccessToken, userMapper.toDto(user));
+        return new LoginResponse(newAccessToken, userMapper.toDto(user));
     }
 
     public void logout(HttpServletResponse response) {

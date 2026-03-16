@@ -1,9 +1,12 @@
 package io.roa.secretmanger.Controller;
 
-import io.roa.secretmanger.DTO.request.ApprovalDto;
-import io.roa.secretmanger.DTO.request.CredentialDto;
-import io.roa.secretmanger.DTO.response.ApiRes;
-import io.roa.secretmanger.DTO.response.PageResponse;
+import io.roa.secretmanger.DTO.request.ApprovalRequest.AccessRequestedResponse;
+import io.roa.secretmanger.DTO.request.ApprovalRequest.CreateCredentialRequest;
+import io.roa.secretmanger.DTO.response.*;
+import io.roa.secretmanger.DTO.response.Shamir.CredentialCreatedResponse;
+import io.roa.secretmanger.DTO.response.Shamir.CredentialDetail;
+import io.roa.secretmanger.DTO.response.Shamir.CredentialRevealResponse;
+import io.roa.secretmanger.DTO.response.Shamir.CredentialSummary;
 import io.roa.secretmanger.Service.ApprovalService;
 import io.roa.secretmanger.Service.CredentialService;
 import jakarta.validation.Valid;
@@ -22,14 +25,13 @@ import java.util.UUID;
 public class CredentialController {
 
     private final CredentialService credentialService;
-    private final ApprovalService   approvalService;
+    private final ApprovalService approvalService;
 
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiRes<CredentialDto.CredentialCreatedResponse> create(
-            @Valid @RequestBody CredentialDto.CreateCredentialRequest request) {
+    public ApiRes<CredentialCreatedResponse> create(@Valid @RequestBody CreateCredentialRequest request) {
         return ApiRes.success("Credential created", credentialService.create(request));
     }
 
@@ -42,29 +44,26 @@ public class CredentialController {
 
     @PostMapping("/{credentialId}/request-access")
     @PreAuthorize("isAuthenticated()")
-    public ApiRes<ApprovalDto.AccessRequestedResponse> requestAccess(@PathVariable UUID credentialId) {
-        return ApiRes.success("Access request submitted",
-                approvalService.requestAccess(credentialId));
+    public ApiRes<AccessRequestedResponse> requestAccess(@PathVariable UUID credentialId) {
+        return ApiRes.success("Access request submitted", approvalService.requestAccess(credentialId));
     }
 
     @GetMapping("/{credentialId}/reveal")
     @PreAuthorize("isAuthenticated()")
-    public ApiRes<CredentialDto.CredentialRevealResponse> reveal(@PathVariable UUID credentialId) {
+    public ApiRes<CredentialRevealResponse> reveal(@PathVariable UUID credentialId) {
         return ApiRes.success(credentialService.reveal(credentialId));
     }
 
 
     @GetMapping("/project/{projectId}")
     @PreAuthorize("isAuthenticated()")
-    public ApiRes<PageResponse<CredentialDto.CredentialSummary>> listByProject(
-            @PathVariable UUID projectId,
-            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+    public ApiRes<PageResponse<CredentialSummary>> listByProject(@PathVariable UUID projectId, @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
         return ApiRes.success(credentialService.listByProject(projectId, pageable));
     }
 
     @GetMapping("/{credentialId}")
     @PreAuthorize("isAuthenticated()")
-    public ApiRes<CredentialDto.CredentialDetail> getDetail(@PathVariable UUID credentialId) {
+    public ApiRes<CredentialDetail> getDetail(@PathVariable UUID credentialId) {
         return ApiRes.success(credentialService.getDetail(credentialId));
     }
 }

@@ -1,9 +1,13 @@
 package io.roa.secretmanger.Controller;
 
 
-import io.roa.secretmanger.DTO.request.ProjectDto;
+import io.roa.secretmanger.DTO.request.Project.AddMemberRequest;
+import io.roa.secretmanger.DTO.request.Project.CreateProjectRequest;
 import io.roa.secretmanger.DTO.response.ApiRes;
 import io.roa.secretmanger.DTO.response.PageResponse;
+import io.roa.secretmanger.DTO.response.Project.ProjectCreatedResponse;
+import io.roa.secretmanger.DTO.response.Project.ProjectDetail;
+import io.roa.secretmanger.DTO.response.Project.ProjectSummary;
 import io.roa.secretmanger.Service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,14 +29,14 @@ public class ProjectController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiRes<ProjectDto.ProjectCreatedResponse> create(@Valid @RequestBody ProjectDto.CreateProjectRequest request) {
+    public ApiRes<ProjectCreatedResponse> create(@Valid @RequestBody CreateProjectRequest request) {
         return ApiRes.success("Project created", projectService.create(request));
     }
 
     @PostMapping("/{projectId}/members")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiRes<Void> addMember(@PathVariable UUID projectId,
-                                  @Valid @RequestBody ProjectDto.AddMemberRequest request) {
+                                  @Valid @RequestBody AddMemberRequest request) {
         projectService.addMember(projectId, request);
         return ApiRes.success("Member added", null);
     }
@@ -47,14 +51,14 @@ public class ProjectController {
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ApiRes<PageResponse<ProjectDto.ProjectSummary>> getMyProjects(
+    public ApiRes<PageResponse<ProjectSummary>> getMyProjects(
             @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
         return ApiRes.success(projectService.getMyProjects(pageable));
     }
 
     @GetMapping("/{projectId}")
     @PreAuthorize("isAuthenticated()")
-    public ApiRes<ProjectDto.ProjectDetail> getDetail(@PathVariable UUID projectId) {
+    public ApiRes<ProjectDetail> getDetail(@PathVariable UUID projectId) {
         return ApiRes.success(projectService.getDetail(projectId));
     }
 }

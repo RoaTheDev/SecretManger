@@ -1,8 +1,13 @@
 package io.roa.secretmanger.Service.Impl;
 
 import io.roa.secretmanger.Config.CacheConfig;
-import io.roa.secretmanger.DTO.request.ProjectDto;
+import io.roa.secretmanger.DTO.request.Project.AddMemberRequest;
+import io.roa.secretmanger.DTO.request.Project.CreateProjectRequest;
 import io.roa.secretmanger.DTO.response.PageResponse;
+import io.roa.secretmanger.DTO.response.Project.MemberSummary;
+import io.roa.secretmanger.DTO.response.Project.ProjectCreatedResponse;
+import io.roa.secretmanger.DTO.response.Project.ProjectDetail;
+import io.roa.secretmanger.DTO.response.Project.ProjectSummary;
 import io.roa.secretmanger.Exception.DuplicateResourceException;
 import io.roa.secretmanger.Exception.ResourceNotFoundException;
 import io.roa.secretmanger.Mapper.ProjectMapper;
@@ -33,7 +38,7 @@ public class ProjectServiceImpl implements ProjectService {
 
 
     @Transactional
-    public ProjectDto.ProjectCreatedResponse create(ProjectDto.CreateProjectRequest request) {
+    public ProjectCreatedResponse create(CreateProjectRequest request) {
         User currentUser = securityContext.getCurrentUser();
 
         Project project = new Project();
@@ -42,12 +47,12 @@ public class ProjectServiceImpl implements ProjectService {
         project.setCreatedBy(currentUser);
         project.setMembers(List.of(currentUser));
 
-        return new ProjectDto.ProjectCreatedResponse(projectRepo.save(project).getId());
+        return new ProjectCreatedResponse(projectRepo.save(project).getId());
     }
 
     @Transactional
     @CacheEvict(value = CacheConfig.MEMBERSHIP, key = "#projectId + ':' + #request.userId()")
-    public void addMember(UUID projectId, ProjectDto.AddMemberRequest request) {
+    public void addMember(UUID projectId, AddMemberRequest request) {
         Project project = findProjectOrThrow(projectId);
 
         User user = userRepo.findById(request.userId())
@@ -70,7 +75,7 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<ProjectDto.ProjectSummary> getMyProjects(Pageable pageable) {
+    public PageResponse<ProjectSummary> getMyProjects(Pageable pageable) {
         UUID currentUserId = securityContext.getCurrentUserId();
         return PageResponse.of(
                 projectRepo.findSummariesForUser(currentUserId, pageable)
@@ -79,16 +84,16 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Transactional(readOnly = true)
-    public ProjectDto.ProjectDetail getDetail(UUID projectId) {
+    public ProjectDetail getDetail(UUID projectId) {
         Project project = findProjectOrThrow(projectId);
 
-        List<ProjectDto.MemberSummary> members = projectRepo
+        List<MemberSummary> members = projectRepo
                 .findMembersByProjectId(projectId)
                 .stream()
                 .map(projectMapper::toMemberSummary)
                 .toList();
 
-        return new ProjectDto.ProjectDetail(
+        return new ProjectDetail(
                 project.getId(),
                 project.getName(),
                 project.getDescription(),

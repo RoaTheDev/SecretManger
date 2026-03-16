@@ -1,4 +1,4 @@
-package io.roa.secretmanger.DTO.request;
+package io.roa.secretmanger.DTO.response;
 
 
 import java.time.LocalDateTime;

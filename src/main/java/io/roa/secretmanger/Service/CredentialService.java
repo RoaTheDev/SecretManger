@@ -1,15 +1,19 @@
 package io.roa.secretmanger.Service;
 
-import io.roa.secretmanger.DTO.request.CredentialDto;
-import io.roa.secretmanger.DTO.response.PageResponse;
+import io.roa.secretmanger.DTO.request.ApprovalRequest.CreateCredentialRequest;
+import io.roa.secretmanger.DTO.response.*;
+import io.roa.secretmanger.DTO.response.Shamir.CredentialCreatedResponse;
+import io.roa.secretmanger.DTO.response.Shamir.CredentialDetail;
+import io.roa.secretmanger.DTO.response.Shamir.CredentialRevealResponse;
+import io.roa.secretmanger.DTO.response.Shamir.CredentialSummary;
 import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
 
 public interface CredentialService {
-    CredentialDto.CredentialCreatedResponse create(CredentialDto.CreateCredentialRequest request);
-    PageResponse<CredentialDto.CredentialSummary> listByProject(UUID projectId, Pageable pageable);
-    CredentialDto.CredentialDetail getDetail(UUID credentialId);
-    CredentialDto.CredentialRevealResponse reveal(UUID credentialId);
+    CredentialCreatedResponse create(CreateCredentialRequest request);
+    PageResponse<CredentialSummary> listByProject(UUID projectId, Pageable pageable);
+    CredentialDetail getDetail(UUID credentialId);
+    CredentialRevealResponse reveal(UUID credentialId);
     void delete(UUID credentialId);
 }

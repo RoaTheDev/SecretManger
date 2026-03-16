@@ -1,14 +1,16 @@
 package io.roa.secretmanger.Service;
 
-import io.roa.secretmanger.DTO.request.AuthDto;
+import io.roa.secretmanger.DTO.request.Auth.LoginRequest;
+import io.roa.secretmanger.DTO.response.LoginResponse;
+import io.roa.secretmanger.DTO.request.Auth.RegisterRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthService {
-    void register(AuthDto.RegisterRequest request);
+    void register(RegisterRequest request);
 
-    AuthDto.LoginResponse login(AuthDto.LoginRequest request, HttpServletResponse response);
+    LoginResponse login(LoginRequest request, HttpServletResponse response);
 
-    AuthDto.LoginResponse refresh(String refreshToken, HttpServletResponse response);
+    LoginResponse refresh(String refreshToken, HttpServletResponse response);
 
     void logout(HttpServletResponse response);
 }

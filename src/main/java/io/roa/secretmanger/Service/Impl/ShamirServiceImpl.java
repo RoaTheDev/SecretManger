@@ -29,66 +29,69 @@ public class ShamirServiceImpl implements ShamirService {
 
     @Value("${app.master-key}")
     private String masterKeyBase64;
-
-
+    
     @Transactional
     public void splitAndDistribute() {
-        if (shamirShareRepo.count() > 0) {
+        List<User> admins = userRepo.findAllByRole(UserRole.ADMIN);
+        if (admins.isEmpty()) {
+            throw new ResourceNotFoundException("No admin users found");
+        }
+
+        if (shamirShareRepo.count() >= admins.size()) {
             throw new ShamirAlreadyInitializedException(
                     "Shamir shares have already been distributed");
         }
 
-        List<User> admins = userRepo.findAllByRole((UserRole.ADMIN));
-        if (admins.isEmpty()) {
-            throw new ResourceNotFoundException("No admin users found to distribute shares to");
-        }
         int n = admins.size();
+        int k = (n / 2) + 1;
 
-        int k = admins.size() - (admins.size() / 2);
         Scheme scheme = new Scheme(new SecureRandom(), n, k);
         Map<Integer, byte[]> shares = scheme.split(
                 Base64.getDecoder().decode(masterKeyBase64));
 
         int index = 1;
         for (User admin : admins) {
-            String shareBase64 = Base64.getEncoder().encodeToString(shares.get(index));
+            String shareBase64    = Base64.getEncoder().encodeToString(shares.get(index));
             String encryptedShare = cryptoService.encrypt(shareBase64);
 
             ShamirShare row = new ShamirShare();
             row.setAdmin(admin);
             row.setShareIndex(index);
             row.setEncryptedShare(encryptedShare);
-
             shamirShareRepo.save(row);
             index++;
         }
     }
 
-
     @Transactional(readOnly = true)
-    public String reconstructMasterKey(Map<UUID, String> adminVerifiedIds) {
+    public String reconstructMasterKey(Set<UUID> adminIds) {
+        int n = (int) shamirShareRepo.count();
+        int k = (n / 2) + 1;
+
+        if (adminIds.size() < k) {
+            throw new ShamirReconstructionException(
+                    "Not enough shares provided. Need at least " + k + " admins.");
+        }
+
         try {
             Map<Integer, byte[]> shares = new HashMap<>();
-
-            for (UUID adminId : adminVerifiedIds.keySet()) {
+            for (UUID adminId : adminIds) {
                 ShamirShare row = shamirShareRepo.findByAdminId(adminId)
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 "No share found for admin: " + adminId));
-
                 String decryptedShare = cryptoService.decrypt(row.getEncryptedShare());
                 shares.put(row.getShareIndex(),
                         Base64.getDecoder().decode(decryptedShare));
             }
 
-            int totalShares = (int) shamirShareRepo.count();
-            Scheme scheme = new Scheme(new SecureRandom(), totalShares, shares.size());
-
+            Scheme scheme = new Scheme(new SecureRandom(), n, k);
             return Base64.getEncoder().encodeToString(scheme.join(shares));
+        } catch (ShamirReconstructionException e) {
+            throw e;
         } catch (Exception e) {
             throw new ShamirReconstructionException("Master key reconstruction failed", e);
         }
     }
-
     @Transactional(readOnly = true)
     public boolean isInitialized() {
         return shamirShareRepo.count() > 0;

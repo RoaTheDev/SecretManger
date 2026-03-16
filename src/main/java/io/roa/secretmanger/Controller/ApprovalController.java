@@ -1,7 +1,9 @@
 package io.roa.secretmanger.Controller;
 
 
-import io.roa.secretmanger.DTO.request.ApprovalDto;
+import io.roa.secretmanger.DTO.response.ApprovalRequest.ApprovalRequestSummary;
+import io.roa.secretmanger.DTO.request.ApprovalRequest.CastVoteRequest;
+import io.roa.secretmanger.DTO.response.ApprovalRequest.VoteCastResponse;
 import io.roa.secretmanger.DTO.response.ApiRes;
 import io.roa.secretmanger.DTO.response.PageResponse;
 import io.roa.secretmanger.Service.ApprovalService;
@@ -24,15 +26,15 @@ public class ApprovalController {
 
     @PostMapping("/{requestId}/vote")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEAM_LEAD', 'PROJECT_MANAGER')")
-    public ApiRes<ApprovalDto.VoteCastResponse> castVote(@PathVariable UUID requestId,
-                                                         @Valid @RequestBody ApprovalDto.CastVoteRequest request) {
+    public ApiRes<VoteCastResponse> castVote(@PathVariable UUID requestId,
+                                             @Valid @RequestBody CastVoteRequest request) {
         return ApiRes.success("Vote cast", approvalService.castVote(requestId, request));
     }
 
 
     @GetMapping("/pending")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEAM_LEAD', 'PROJECT_MANAGER')")
-    public ApiRes<PageResponse<ApprovalDto.ApprovalRequestSummary>> getPending(
+    public ApiRes<PageResponse<ApprovalRequestSummary>> getPending(
             @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
         return ApiRes.success(approvalService.getPendingForCurrentUser(pageable));
     }

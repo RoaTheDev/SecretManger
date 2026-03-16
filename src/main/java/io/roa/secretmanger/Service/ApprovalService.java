@@ -1,13 +1,16 @@
 package io.roa.secretmanger.Service;
 
-import io.roa.secretmanger.DTO.request.ApprovalDto;
+import io.roa.secretmanger.DTO.request.ApprovalRequest.AccessRequestedResponse;
+import io.roa.secretmanger.DTO.request.ApprovalRequest.CastVoteRequest;
+import io.roa.secretmanger.DTO.response.ApprovalRequest.ApprovalRequestSummary;
 import io.roa.secretmanger.DTO.response.PageResponse;
+import io.roa.secretmanger.DTO.response.ApprovalRequest.VoteCastResponse;
 import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
 
 public interface ApprovalService {
-    ApprovalDto.AccessRequestedResponse requestAccess(UUID credentialId);
-    ApprovalDto.VoteCastResponse castVote(UUID requestId, ApprovalDto.CastVoteRequest voteRequest);
-    PageResponse<ApprovalDto.ApprovalRequestSummary> getPendingForCurrentUser(Pageable pageable);
+    AccessRequestedResponse requestAccess(UUID credentialId);
+    VoteCastResponse castVote(UUID requestId, CastVoteRequest voteRequest);
+    PageResponse<ApprovalRequestSummary> getPendingForCurrentUser(Pageable pageable);
 }

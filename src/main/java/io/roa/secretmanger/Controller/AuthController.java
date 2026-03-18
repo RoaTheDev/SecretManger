@@ -1,9 +1,10 @@
 package io.roa.secretmanger.Controller;
 
+import io.roa.secretmanger.Controller.docs.AuthEndpointDoc;
 import io.roa.secretmanger.DTO.request.Auth.LoginRequest;
-import io.roa.secretmanger.DTO.response.LoginResponse;
 import io.roa.secretmanger.DTO.request.Auth.RegisterRequest;
 import io.roa.secretmanger.DTO.response.ApiRes;
+import io.roa.secretmanger.DTO.response.LoginResponse;
 import io.roa.secretmanger.Service.AuthService;
 import io.roa.secretmanger.Util.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-public class AuthController {
+public class AuthController implements AuthEndpointDoc {
 
     private final AuthService authService;
     private final CookieUtil cookieUtil;

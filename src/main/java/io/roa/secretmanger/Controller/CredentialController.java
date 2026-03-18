@@ -1,8 +1,10 @@
 package io.roa.secretmanger.Controller;
 
+import io.roa.secretmanger.Controller.docs.CredentialEndpointDoc;
 import io.roa.secretmanger.DTO.request.ApprovalRequest.AccessRequestedResponse;
 import io.roa.secretmanger.DTO.request.ApprovalRequest.CreateCredentialRequest;
-import io.roa.secretmanger.DTO.response.*;
+import io.roa.secretmanger.DTO.response.ApiRes;
+import io.roa.secretmanger.DTO.response.PageResponse;
 import io.roa.secretmanger.DTO.response.Shamir.CredentialCreatedResponse;
 import io.roa.secretmanger.DTO.response.Shamir.CredentialDetail;
 import io.roa.secretmanger.DTO.response.Shamir.CredentialRevealResponse;
@@ -22,7 +24,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/credentials")
 @RequiredArgsConstructor
-public class CredentialController {
+public class CredentialController implements CredentialEndpointDoc {
 
     private final CredentialService credentialService;
     private final ApprovalService approvalService;

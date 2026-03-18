@@ -1,6 +1,7 @@
 package io.roa.secretmanger.Controller;
 
 
+import io.roa.secretmanger.Controller.docs.ProjectEndpointDoc;
 import io.roa.secretmanger.DTO.request.Project.AddMemberRequest;
 import io.roa.secretmanger.DTO.request.Project.CreateProjectRequest;
 import io.roa.secretmanger.DTO.response.ApiRes;
@@ -22,7 +23,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/projects")
 @RequiredArgsConstructor
-public class ProjectController {
+public class ProjectController implements ProjectEndpointDoc {
 
     private final ProjectService projectService;
 

@@ -1,15 +1,16 @@
 package io.roa.secretmanger.Controller;
 
 
-import io.roa.secretmanger.DTO.response.AuditLogResponse;
+import io.roa.secretmanger.Controller.docs.AdminEndpointDoc;
+import io.roa.secretmanger.DTO.projection.UserSummaryProjection;
 import io.roa.secretmanger.DTO.response.ApiRes;
+import io.roa.secretmanger.DTO.response.AuditLogResponse;
 import io.roa.secretmanger.DTO.response.PageResponse;
 import io.roa.secretmanger.DTO.response.Shamir.ShamirStatusResponse;
+import io.roa.secretmanger.Mapper.AuditMapper;
+import io.roa.secretmanger.Repo.AuditLogRepo;
 import io.roa.secretmanger.Service.AdminService;
 import io.roa.secretmanger.Service.ShamirService;
-import io.roa.secretmanger.Repo.AuditLogRepo;
-import io.roa.secretmanger.DTO.projection.UserSummaryProjection;
-import io.roa.secretmanger.Mapper.AuditMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -22,12 +23,12 @@ import java.util.UUID;
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-public class AdminController {
+public class AdminController implements AdminEndpointDoc {
 
     private final AdminService adminService;
     private final ShamirService shamirService;
-    private final AuditLogRepo  auditLogRepo;
-    private final AuditMapper   auditMapper;
+    private final AuditLogRepo auditLogRepo;
+    private final AuditMapper auditMapper;
 
     @GetMapping("/users")
     public ApiRes<PageResponse<UserSummaryProjection>> getAllUsers(

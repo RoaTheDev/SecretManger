@@ -10,5 +10,5 @@ public enum CredentialType {
     SSH_KEY,
     TLS_CERT,
     CONFIG_FILE,    // Generic config files (.yaml, .json, .toml, etc.)
-    OTHER           // Anything that doesn't fit the above
+    OTHER
 }

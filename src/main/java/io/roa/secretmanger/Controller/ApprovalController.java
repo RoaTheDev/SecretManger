@@ -1,10 +1,11 @@
 package io.roa.secretmanger.Controller;
 
 
-import io.roa.secretmanger.DTO.response.ApprovalRequest.ApprovalRequestSummary;
+import io.roa.secretmanger.Controller.docs.ApprovalEndpointDoc;
 import io.roa.secretmanger.DTO.request.ApprovalRequest.CastVoteRequest;
-import io.roa.secretmanger.DTO.response.ApprovalRequest.VoteCastResponse;
 import io.roa.secretmanger.DTO.response.ApiRes;
+import io.roa.secretmanger.DTO.response.ApprovalRequest.ApprovalRequestSummary;
+import io.roa.secretmanger.DTO.response.ApprovalRequest.VoteCastResponse;
 import io.roa.secretmanger.DTO.response.PageResponse;
 import io.roa.secretmanger.Service.ApprovalService;
 import jakarta.validation.Valid;
@@ -19,7 +20,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/approvals")
 @RequiredArgsConstructor
-public class ApprovalController {
+public class ApprovalController implements ApprovalEndpointDoc {
 
     private final ApprovalService approvalService;
 

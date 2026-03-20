@@ -10,6 +10,7 @@ import io.roa.secretmanger.DTO.response.PageResponse;
 import io.roa.secretmanger.Service.ApprovalService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,6 +37,7 @@ public class ApprovalController implements ApprovalEndpointDoc {
     @GetMapping("/pending")
     @PreAuthorize("hasAnyRole('ADMIN', 'TEAM_LEAD', 'PROJECT_MANAGER')")
     public ApiRes<PageResponse<ApprovalRequestSummary>> getPending(
+            @ParameterObject
             @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
         return ApiRes.success(approvalService.getPendingForCurrentUser(pageable));
     }

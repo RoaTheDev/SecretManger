@@ -14,6 +14,7 @@ import io.roa.secretmanger.Service.ApprovalService;
 import io.roa.secretmanger.Service.CredentialService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -67,7 +68,9 @@ public class CredentialController implements CredentialEndpointDoc {
     }
     @GetMapping("/project/{projectId}")
     @PreAuthorize("isAuthenticated()")
-    public ApiRes<PageResponse<CredentialSummary>> listByProject(@PathVariable UUID projectId, @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+    public ApiRes<PageResponse<CredentialSummary>> listByProject(@PathVariable UUID projectId,
+                                                                 @ParameterObject
+                                                                 @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
         return ApiRes.success(credentialService.listByProject(projectId, pageable));
     }
 

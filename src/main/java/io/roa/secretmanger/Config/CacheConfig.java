@@ -13,10 +13,11 @@ import java.util.concurrent.TimeUnit;
 @EnableCaching
 public class CacheConfig {
 
-    public static final String MEMBERSHIP  = "membership";
-    public static final String APPROVAL    = "approval-status";
-    public static final String CREDENTIAL  = "credential-detail";
-    public static final String USER_ROLE   = "user-role";
+    public static final String MEMBERSHIP      = "membership";
+    public static final String APPROVAL        = "approval-status";
+    public static final String CREDENTIAL      = "credential-detail";
+    public static final String USER_ROLE       = "user-role";
+    public static final String DELETION_VOTES  = "deletion-votes";
 
     @Bean
     public CacheManager cacheManager() {

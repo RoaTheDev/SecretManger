@@ -12,6 +12,7 @@ import io.roa.secretmanger.DTO.response.Project.ProjectSummary;
 import io.roa.secretmanger.Service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -54,7 +55,8 @@ public class ProjectController implements ProjectEndpointDoc {
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ApiRes<PageResponse<ProjectSummary>> getMyProjects(
-            @PageableDefault(size = 20, page = 1, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
+            @ParameterObject
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         return ApiRes.success(projectService.getMyProjects(pageable));
     }
 

@@ -7,6 +7,7 @@ import io.roa.secretmanger.Model.Entity.Project;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -19,22 +20,22 @@ public interface ProjectRepo extends JpaRepository<Project, UUID> {
 
     @Query(
             value = """
-            SELECT p.id            AS id,
-                   p.name          AS name,
-                   p.description   AS description,
-                   p.created_at    AS createdAt,
-                   COUNT(m.user_id) AS memberCount
-            FROM projects p
-            LEFT JOIN project_members m ON m.project_id = p.id
-            WHERE p.created_by = :userId
-               OR p.id IN (
-                   SELECT pm.project_id
-                   FROM project_members pm
-                   WHERE pm.user_id = :userId
-               )
-            GROUP BY p.id, p.name, p.description, p.created_at
-            ORDER BY p.created_at DESC
-            """,
+                    SELECT p.id            AS id,
+                           p.name          AS name,
+                           p.description   AS description,
+                           p.created_at    AS createdAt,
+                           COUNT(m.user_id) AS memberCount
+                    FROM projects p
+                    LEFT JOIN project_members m ON m.project_id = p.id
+                    WHERE p.created_by = :userId
+                       OR p.id IN (
+                           SELECT pm.project_id
+                           FROM project_members pm
+                           WHERE pm.user_id = :userId
+                       )
+                    GROUP BY p.id, p.name, p.description, p.created_at
+                    ORDER BY p.created_at DESC
+                    """,
             countQuery = """
                     SELECT COUNT(DISTINCT p.id)
                     FROM projects p
@@ -50,6 +51,7 @@ public interface ProjectRepo extends JpaRepository<Project, UUID> {
     )
     Page<ProjectSummaryProjection> findSummariesForUser(@Param("userId") UUID userId,
                                                         Pageable pageable);
+
     @Query("""
             SELECT u.id    AS id,
                    u.name  AS name,
@@ -60,7 +62,22 @@ public interface ProjectRepo extends JpaRepository<Project, UUID> {
             WHERE p.id = :projectId
             """)
     List<MemberProjection> findMembersByProjectId(@Param("projectId") UUID projectId);
-
+    @Query(
+            value = """
+            SELECT p.id             AS id,
+                   p.name           AS name,
+                   p.description    AS description,
+                   p.created_at     AS createdAt,
+                   COUNT(m.user_id) AS memberCount
+            FROM projects p
+            LEFT JOIN project_members m ON m.project_id = p.id
+            GROUP BY p.id, p.name, p.description, p.created_at
+            ORDER BY p.created_at DESC
+            """,
+            countQuery = "SELECT COUNT(DISTINCT p.id) FROM projects p",
+            nativeQuery = true
+    )
+    Page<ProjectSummaryProjection> findAllSummaries(Pageable pageable);
     @Query("""
             SELECT COUNT(p) > 0 FROM Project p
             LEFT JOIN p.members m
@@ -68,4 +85,13 @@ public interface ProjectRepo extends JpaRepository<Project, UUID> {
             AND (p.createdBy.id = :userId OR m.id = :userId)
             """)
     boolean isMember(@Param("projectId") UUID projectId, @Param("userId") UUID userId);
+
+    @Modifying
+    @Query("DELETE FROM Credential c WHERE c.project.id = :projectId")
+    void deleteCredentialsByProjectId(@Param("projectId") UUID projectId);
+
+    @Modifying
+    @Query(value = "DELETE FROM project_members WHERE project_id = :projectId",
+            nativeQuery = true)
+    void deleteMembersByProjectId(@Param("projectId") UUID projectId);
 }

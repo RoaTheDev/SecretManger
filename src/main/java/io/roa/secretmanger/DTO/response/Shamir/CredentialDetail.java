@@ -1,6 +1,7 @@
 package io.roa.secretmanger.DTO.response.Shamir;
 
 import io.roa.secretmanger.Model.Value.AccessTier;
+import io.roa.secretmanger.Model.Value.ApprovalPolicy;
 import io.roa.secretmanger.Model.Value.CredentialType;
 
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ public record CredentialDetail(
         CredentialType type,
         AccessTier accessTier,
         String createdBy,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        ApprovalPolicy approvalPolicy
 ) {
 }

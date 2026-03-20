@@ -1,5 +1,6 @@
 package io.roa.secretmanger.Service.Impl;
 
+import io.roa.secretmanger.Annotation.Audited;
 import io.roa.secretmanger.Config.CacheConfig;
 import io.roa.secretmanger.DTO.request.Project.AddMemberRequest;
 import io.roa.secretmanger.DTO.request.Project.CreateProjectRequest;
@@ -16,8 +17,10 @@ import io.roa.secretmanger.Model.Entity.User;
 import io.roa.secretmanger.Repo.ProjectRepo;
 import io.roa.secretmanger.Repo.UserRepo;
 import io.roa.secretmanger.Service.ProjectService;
+import io.roa.secretmanger.Service.ShamirService;
 import io.roa.secretmanger.Util.SecurityContextUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -35,7 +39,8 @@ public class ProjectServiceImpl implements ProjectService {
     private final UserRepo userRepo;
     private final ProjectMapper projectMapper;
     private final SecurityContextUtil securityContext;
-
+    private final ShamirService shamirService;
+    private final CacheManager cacheManager;
 
     @Transactional
     public ProjectCreatedResponse create(CreateProjectRequest request) {
@@ -101,9 +106,38 @@ public class ProjectServiceImpl implements ProjectService {
                 project.getCreatedAt()
         );
     }
+
+    @Transactional(readOnly = true)
+    public PageResponse<ProjectSummary> getAllProjects(Pageable pageable) {
+        return PageResponse.of(
+                projectRepo.findAllSummaries(pageable)
+                        .map(projectMapper::toSummary)
+        );
+    }
     @Cacheable(value = CacheConfig.MEMBERSHIP, key = "#projectId + ':' + #userId")
     public boolean isMember(UUID projectId, UUID userId) {
         return projectRepo.isMember(projectId, userId);
+    }
+
+    @Transactional
+    @CacheEvict(value = CacheConfig.MEMBERSHIP, allEntries = true)
+    public void delete(UUID projectId, Set<UUID> adminIds) {
+        findProjectOrThrow(projectId);
+
+        shamirService.reconstructMasterKey(adminIds);
+
+        projectRepo.deleteMembersByProjectId(projectId);
+        projectRepo.deleteCredentialsByProjectId(projectId);
+        projectRepo.deleteById(projectId);
+    }
+
+    @Audited(action = "PROJECT_DELETION_APPROVED", targetType = "PROJECT")
+    @Transactional
+    @CacheEvict(value = CacheConfig.MEMBERSHIP, allEntries = true)
+    public void executeProjectDeletion(UUID projectId) {
+        projectRepo.deleteMembersByProjectId(projectId);
+        projectRepo.deleteCredentialsByProjectId(projectId);
+        projectRepo.deleteById(projectId);
     }
 
     private Project findProjectOrThrow(UUID projectId) {

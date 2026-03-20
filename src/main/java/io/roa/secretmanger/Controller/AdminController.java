@@ -3,20 +3,27 @@ package io.roa.secretmanger.Controller;
 
 import io.roa.secretmanger.Controller.docs.AdminEndpointDoc;
 import io.roa.secretmanger.DTO.projection.UserSummaryProjection;
+import io.roa.secretmanger.DTO.request.Project.VoteDeletionRequest;
 import io.roa.secretmanger.DTO.response.ApiRes;
 import io.roa.secretmanger.DTO.response.AuditLogResponse;
 import io.roa.secretmanger.DTO.response.PageResponse;
+import io.roa.secretmanger.DTO.response.Project.DeletionVoteStatus;
+import io.roa.secretmanger.DTO.response.Project.ProjectSummary;
 import io.roa.secretmanger.DTO.response.Shamir.ShamirStatusResponse;
 import io.roa.secretmanger.Mapper.AuditMapper;
 import io.roa.secretmanger.Repo.AuditLogRepo;
 import io.roa.secretmanger.Service.AdminService;
+import io.roa.secretmanger.Service.ProjectService;
 import io.roa.secretmanger.Service.ShamirService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -29,10 +36,12 @@ public class AdminController implements AdminEndpointDoc {
     private final ShamirService shamirService;
     private final AuditLogRepo auditLogRepo;
     private final AuditMapper auditMapper;
+    private final ProjectService projectService;
 
     @GetMapping("/users")
     @PreAuthorize("hasAnyRole('ADMIN','TEAM_LEAD','PROJECT_MANAGER')")
     public ApiRes<PageResponse<UserSummaryProjection>> getAllUsers(
+            @ParameterObject
             @PageableDefault(size = 20) Pageable pageable) {
         return ApiRes.success(adminService.getAllUsers(pageable));
     }
@@ -75,5 +84,30 @@ public class AdminController implements AdminEndpointDoc {
                 PageResponse.of(
                         auditLogRepo.findFiltered(actorId, action, targetType, pageable)
                                 .map(auditMapper::toDto)));
+    }
+
+    @DeleteMapping("/projects/{projectId}")
+    public ApiRes<Void> deleteProject(
+            @PathVariable UUID projectId,
+            @RequestBody Set<UUID> adminIds) {
+        projectService.delete(projectId, adminIds);
+        return ApiRes.success("Project and all associated credentials deleted", null);
+    }
+    @GetMapping("/projects/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiRes<PageResponse<ProjectSummary>> getAllProjects(
+            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+        return ApiRes.success(projectService.getAllProjects(pageable));
+    }
+    @PostMapping("/projects/{projectId}/deletion-vote")
+    public ApiRes<DeletionVoteStatus> voteDeletion(
+            @PathVariable UUID projectId,
+            @Valid @RequestBody VoteDeletionRequest request) {
+        return ApiRes.success(adminService.voteDeletion(projectId, request.password()));
+    }
+
+    @GetMapping("/projects/{projectId}/deletion-vote")
+    public ApiRes<DeletionVoteStatus> getDeletionVoteStatus(@PathVariable UUID projectId) {
+        return ApiRes.success(adminService.getVoteStatus(projectId));
     }
 }

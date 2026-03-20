@@ -25,11 +25,7 @@ import java.util.Map;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    private final CookieUtil cookieUtil;
 
-    public GlobalExceptionHandler(CookieUtil cookieUtil) {
-        this.cookieUtil = cookieUtil;
-    }
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiRes<Void>> handleUnauthorized(UnauthorizedException ex) {

@@ -59,7 +59,8 @@ public class AuthServiceImpl implements AuthService {
 
         cookieUtil.addRefreshTokenCookie(response, refreshToken);
 
-        return new LoginResponse(accessToken, userMapper.toDto(user));
+        return new LoginResponse(accessToken, userMapper.toDto(user),
+                jwtUtil.getExpirationFromToken(accessToken).getTime());
     }
 
     @Transactional(readOnly = true)
@@ -81,7 +82,7 @@ public class AuthServiceImpl implements AuthService {
 
         cookieUtil.addRefreshTokenCookie(response, newRefreshToken);
 
-        return new LoginResponse(newAccessToken, userMapper.toDto(user));
+        return new LoginResponse(newAccessToken, userMapper.toDto(user),jwtUtil.getExpirationFromToken(newAccessToken).getTime());
     }
 
     public void logout(HttpServletResponse response) {

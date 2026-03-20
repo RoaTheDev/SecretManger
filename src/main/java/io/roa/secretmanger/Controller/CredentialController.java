@@ -3,6 +3,7 @@ package io.roa.secretmanger.Controller;
 import io.roa.secretmanger.Controller.docs.CredentialEndpointDoc;
 import io.roa.secretmanger.DTO.request.ApprovalRequest.AccessRequestedResponse;
 import io.roa.secretmanger.DTO.request.ApprovalRequest.CreateCredentialRequest;
+import io.roa.secretmanger.DTO.request.Project.UpdateCredentialRequest;
 import io.roa.secretmanger.DTO.response.ApiRes;
 import io.roa.secretmanger.DTO.response.PageResponse;
 import io.roa.secretmanger.DTO.response.Shamir.CredentialCreatedResponse;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -56,7 +58,13 @@ public class CredentialController implements CredentialEndpointDoc {
         return ApiRes.success(credentialService.reveal(credentialId));
     }
 
-
+    @PatchMapping("/{credentialId}")
+    @PreAuthorize("hasAnyRole('ADMIN','TEAM_LEAD')")
+    public ResponseEntity<ApiRes<CredentialDetail>> update(
+            @PathVariable UUID credentialId,
+            @RequestBody @Valid UpdateCredentialRequest request) {
+        return ResponseEntity.ok(ApiRes.success(credentialService.update(credentialId, request)));
+    }
     @GetMapping("/project/{projectId}")
     @PreAuthorize("isAuthenticated()")
     public ApiRes<PageResponse<CredentialSummary>> listByProject(@PathVariable UUID projectId, @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {

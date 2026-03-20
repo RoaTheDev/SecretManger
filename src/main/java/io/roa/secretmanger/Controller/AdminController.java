@@ -31,6 +31,7 @@ public class AdminController implements AdminEndpointDoc {
     private final AuditMapper auditMapper;
 
     @GetMapping("/users")
+    @PreAuthorize("hasAnyRole('ADMIN','TEAM_LEAD','PROJECT_MANAGER')")
     public ApiRes<PageResponse<UserSummaryProjection>> getAllUsers(
             @PageableDefault(size = 20) Pageable pageable) {
         return ApiRes.success(adminService.getAllUsers(pageable));

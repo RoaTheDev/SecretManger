@@ -1,8 +1,10 @@
 package io.roa.secretmanger.Filter;
 
 
+import io.jsonwebtoken.ExpiredJwtException;
 import io.roa.secretmanger.DTO.response.ApiRes;
 import io.roa.secretmanger.Exception.*;
+import io.roa.secretmanger.Util.CookieUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
@@ -23,6 +25,11 @@ import java.util.Map;
 @Slf4j
 public class GlobalExceptionHandler {
 
+    private final CookieUtil cookieUtil;
+
+    public GlobalExceptionHandler(CookieUtil cookieUtil) {
+        this.cookieUtil = cookieUtil;
+    }
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiRes<Void>> handleUnauthorized(UnauthorizedException ex) {
@@ -37,6 +44,11 @@ public class GlobalExceptionHandler {
                 .body(ApiRes.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<ApiRes<Void>> handleExpiredJWT(ExpiredJwtException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiRes.error(ex.getMessage()));
+    }
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ApiRes<Void>> handleDuplicateResource(DuplicateResourceException ex) {
         log.warn("Duplicate resource: {}", ex.getMessage());
@@ -124,7 +136,6 @@ public class GlobalExceptionHandler {
                 .body(ApiRes.error("You don't have permission to perform this action"));
     }
 
-    // ── JPA / DB ──────────────────────────────────────────────────────────────
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ApiRes<Void>> handleEntityNotFound(EntityNotFoundException ex) {

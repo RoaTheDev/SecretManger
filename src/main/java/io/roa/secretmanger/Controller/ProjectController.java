@@ -13,6 +13,7 @@ import io.roa.secretmanger.Service.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -53,7 +54,7 @@ public class ProjectController implements ProjectEndpointDoc {
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ApiRes<PageResponse<ProjectSummary>> getMyProjects(
-            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+            @PageableDefault(size = 20, page = 1, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
         return ApiRes.success(projectService.getMyProjects(pageable));
     }
 

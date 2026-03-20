@@ -1,8 +1,8 @@
 package io.roa.secretmanger.Service.Impl;
 
 import io.roa.secretmanger.DTO.request.Auth.LoginRequest;
-import io.roa.secretmanger.DTO.response.LoginResponse;
 import io.roa.secretmanger.DTO.request.Auth.RegisterRequest;
+import io.roa.secretmanger.DTO.response.LoginResponse;
 import io.roa.secretmanger.Exception.DuplicateResourceException;
 import io.roa.secretmanger.Exception.ResourceNotFoundException;
 import io.roa.secretmanger.Exception.UnauthorizedException;
@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepo userRepository;
-    private final PasswordEncoder   passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authManager;
     private final JwtUtil jwtUtil;
     private final CookieUtil cookieUtil;
@@ -43,7 +43,6 @@ public class AuthServiceImpl implements AuthService {
         user.setEmail(request.email());
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setRole(request.role());
-
         userRepository.save(user);
     }
 
@@ -55,7 +54,7 @@ public class AuthServiceImpl implements AuthService {
 
         User user = (User) auth.getPrincipal();
 
-        String accessToken  = jwtUtil.generateAccessToken(user);
+        String accessToken = jwtUtil.generateAccessToken(user);
         String refreshToken = jwtUtil.generateRefreshToken(user);
 
         cookieUtil.addRefreshTokenCookie(response, refreshToken);
@@ -70,14 +69,14 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String email = jwtUtil.extractUsername(refreshToken);
-        User   user  = userRepository.findByEmail(email)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (!jwtUtil.validateToken(refreshToken, user)) {
             throw new UnauthorizedException("Refresh token expired");
         }
 
-        String newAccessToken  = jwtUtil.generateAccessToken(user);
+        String newAccessToken = jwtUtil.generateAccessToken(user);
         String newRefreshToken = jwtUtil.generateRefreshToken(user);
 
         cookieUtil.addRefreshTokenCookie(response, newRefreshToken);

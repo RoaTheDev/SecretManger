@@ -17,19 +17,39 @@ import java.util.UUID;
 @Repository
 public interface ProjectRepo extends JpaRepository<Project, UUID> {
 
-    @Query("""
-            SELECT DISTINCT p.id        AS id,
-                            p.name      AS name,
-                            p.description AS description,
-                            p.createdAt AS createdAt
-            FROM Project p
-            LEFT JOIN p.members m
-            WHERE p.createdBy.id = :userId OR m.id = :userId
-            ORDER BY p.createdAt DESC
-            """)
+    @Query(
+            value = """
+            SELECT p.id            AS id,
+                   p.name          AS name,
+                   p.description   AS description,
+                   p.created_at    AS createdAt,
+                   COUNT(m.user_id) AS memberCount
+            FROM projects p
+            LEFT JOIN project_members m ON m.project_id = p.id
+            WHERE p.created_by = :userId
+               OR p.id IN (
+                   SELECT pm.project_id
+                   FROM project_members pm
+                   WHERE pm.user_id = :userId
+               )
+            GROUP BY p.id, p.name, p.description, p.created_at
+            ORDER BY p.created_at DESC
+            """,
+            countQuery = """
+                    SELECT COUNT(DISTINCT p.id)
+                    FROM projects p
+                    LEFT JOIN project_members m ON m.project_id = p.id
+                    WHERE p.created_by = :userId
+                       OR p.id IN (
+                           SELECT pm.project_id
+                           FROM project_members pm
+                           WHERE pm.user_id = :userId
+                       )
+                    """,
+            nativeQuery = true
+    )
     Page<ProjectSummaryProjection> findSummariesForUser(@Param("userId") UUID userId,
                                                         Pageable pageable);
-
     @Query("""
             SELECT u.id    AS id,
                    u.name  AS name,

@@ -3,7 +3,8 @@ package io.roa.secretmanger.Service.Impl;
 import io.roa.secretmanger.Annotation.Audited;
 import io.roa.secretmanger.Config.CacheConfig;
 import io.roa.secretmanger.DTO.request.ApprovalRequest.CreateCredentialRequest;
-import io.roa.secretmanger.DTO.response.*;
+import io.roa.secretmanger.DTO.request.Project.UpdateCredentialRequest;
+import io.roa.secretmanger.DTO.response.PageResponse;
 import io.roa.secretmanger.DTO.response.Shamir.CredentialCreatedResponse;
 import io.roa.secretmanger.DTO.response.Shamir.CredentialDetail;
 import io.roa.secretmanger.DTO.response.Shamir.CredentialRevealResponse;
@@ -15,6 +16,7 @@ import io.roa.secretmanger.Mapper.CredentialMapper;
 import io.roa.secretmanger.Model.Entity.Credential;
 import io.roa.secretmanger.Model.Entity.User;
 import io.roa.secretmanger.Model.Value.ApprovalStatus;
+import io.roa.secretmanger.Model.Value.UserRole;
 import io.roa.secretmanger.Repo.ApprovalRequestRepo;
 import io.roa.secretmanger.Repo.CredentialRepo;
 import io.roa.secretmanger.Repo.ProjectRepo;
@@ -30,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -83,17 +86,39 @@ public class CredentialServiceImpl implements CredentialService {
     @Cacheable(value = CacheConfig.CREDENTIAL, key = "#credentialId")
     @Transactional(readOnly = true)
     public CredentialDetail getDetail(UUID credentialId) {
-        var projection = credentialRepo.findDetailById(credentialId)
+        var credential = credentialRepo.findDetailById(credentialId)
                 .orElseThrow(() -> new ResourceNotFoundException("Credential not found"));
 
-        guardMembership(projection.getId());
-        return credentialMapper.toDetail(projection);
+        guardMembership(credential.getProjectId());
+        return credentialMapper.toDetail(credential);
     }
 
     @Audited(action = "CREDENTIAL_ACCESSED", targetType = "CREDENTIAL")
     @Transactional(readOnly = true)
     public CredentialRevealResponse reveal(UUID credentialId) {
         UUID currentUserId = securityContext.getCurrentUserId();
+        User currentUser = securityContext.getCurrentUser();
+
+        Credential credential = credentialRepo.findById(credentialId)
+                .orElseThrow(() -> new ResourceNotFoundException("Credential not found"));
+
+        guardMembership(credential.getProject().getId());
+
+        boolean isPrivileged = Set.of(
+                UserRole.ADMIN,
+                UserRole.TEAM_LEAD,
+                UserRole.PROJECT_MANAGER
+        ).contains(currentUser.getRole());
+
+        if (isPrivileged) {
+            return new CredentialRevealResponse(
+                    credential.getId(),
+                    credential.getName(),
+                    credential.getType(),
+                    cryptoService.decrypt(credential.getEncryptedValue()),
+                    null
+            );
+        }
 
         var approvedRequest = approvalRequestRepo
                 .findByCredentialIdAndRequestedByIdAndStatus(
@@ -102,13 +127,10 @@ public class CredentialServiceImpl implements CredentialService {
                         "Access not approved yet. Submit a request and wait for quorum."));
 
         if (approvedRequest.getExpiresAt() != null
-                && LocalDateTime.now().isAfter(approvedRequest.getExpiresAt())) {
+            && LocalDateTime.now().isAfter(approvedRequest.getExpiresAt())) {
             throw new QuorumNotReachedException(
                     "Your access has expired. Please submit a new request.");
         }
-
-        Credential credential = credentialRepo.findById(credentialId)
-                .orElseThrow(() -> new ResourceNotFoundException("Credential not found"));
 
         return new CredentialRevealResponse(
                 credential.getId(),
@@ -116,6 +138,27 @@ public class CredentialServiceImpl implements CredentialService {
                 credential.getType(),
                 cryptoService.decrypt(credential.getEncryptedValue()),
                 approvedRequest.getExpiresAt()
+        );
+    }
+
+    @Transactional
+    @CacheEvict(value = CacheConfig.CREDENTIAL, key = "#credentialId")
+    public CredentialDetail update(UUID credentialId, UpdateCredentialRequest request) {
+        Credential credential = credentialRepo.findById(credentialId)
+                .orElseThrow(() -> new ResourceNotFoundException("Credential not found"));
+
+        guardMembership(credential.getProject().getId());
+
+        credential.setName(request.name());
+        credential.setType(request.type());
+        credential.setEncryptedValue(cryptoService.encrypt(request.value()));
+        credential.setAccessTier(request.accessTier());
+        credential.setApprovalPolicy(request.approvalPolicy());
+
+        credentialRepo.save(credential);
+        return credentialMapper.toDetail(
+                credentialRepo.findDetailById(credentialId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Credential not found"))
         );
     }
 

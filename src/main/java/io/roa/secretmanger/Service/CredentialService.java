@@ -1,6 +1,7 @@
 package io.roa.secretmanger.Service;
 
 import io.roa.secretmanger.DTO.request.ApprovalRequest.CreateCredentialRequest;
+import io.roa.secretmanger.DTO.request.Project.UpdateCredentialRequest;
 import io.roa.secretmanger.DTO.response.*;
 import io.roa.secretmanger.DTO.response.Shamir.CredentialCreatedResponse;
 import io.roa.secretmanger.DTO.response.Shamir.CredentialDetail;
@@ -16,4 +17,5 @@ public interface CredentialService {
     CredentialDetail getDetail(UUID credentialId);
     CredentialRevealResponse reveal(UUID credentialId);
     void delete(UUID credentialId);
+    CredentialDetail update(UUID credentialId, UpdateCredentialRequest request);
 }

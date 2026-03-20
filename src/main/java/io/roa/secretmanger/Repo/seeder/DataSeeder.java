@@ -12,7 +12,6 @@ import io.roa.secretmanger.Repo.ProjectRepo;
 import io.roa.secretmanger.Repo.UserRepo;
 import io.roa.secretmanger.Service.CryptoService;
 import io.roa.secretmanger.Service.ShamirService;
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -36,7 +35,6 @@ public class DataSeeder implements CommandLineRunner {
     private final ShamirService   shamirService;
     private final CryptoService   cryptoService;
     private final PasswordEncoder passwordEncoder;
-    private final EntityManager   entityManager;
 
     private static final String DEFAULT_PASSWORD = "Password123!";
 

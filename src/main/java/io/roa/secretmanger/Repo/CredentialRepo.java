@@ -47,15 +47,17 @@ public interface CredentialRepo extends JpaRepository<Credential, UUID> {
                                                                     Pageable pageable);
 
     @Query("""
-            SELECT c.id         AS id,
-                   c.name       AS name,
-                   c.type       AS type,
-                   c.accessTier AS accessTier,
-                   c.createdAt  AS createdAt,
-                   c.createdBy  AS createdBy
-            FROM Credential c
-            WHERE c.id = :id
-            """)
+        SELECT c.id            AS id,
+               c.project.id    AS projectId,
+               c.name          AS name,
+               c.type          AS type,
+               c.accessTier    AS accessTier,
+               c.approvalPolicy AS approvalPolicy,
+               c.createdAt     AS createdAt,
+               c.createdBy     AS createdBy
+        FROM Credential c
+        WHERE c.id = :id
+        """)
     Optional<CredentialDetailProjection> findDetailById(@Param("id") UUID id);
 
 //    Optional<Credential> findById(@NonNull UUID id);

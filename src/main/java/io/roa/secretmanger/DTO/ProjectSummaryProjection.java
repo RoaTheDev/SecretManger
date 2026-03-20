@@ -11,5 +11,7 @@ public interface ProjectSummaryProjection {
     String getDescription();
 
     LocalDateTime getCreatedAt();
+
+    int getMemberCount();
 }
 

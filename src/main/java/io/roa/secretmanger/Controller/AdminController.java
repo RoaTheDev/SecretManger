@@ -3,6 +3,7 @@ package io.roa.secretmanger.Controller;
 
 import io.roa.secretmanger.Controller.docs.AdminEndpointDoc;
 import io.roa.secretmanger.DTO.projection.UserSummaryProjection;
+import io.roa.secretmanger.DTO.request.Auth.DeactivateUserRequest;
 import io.roa.secretmanger.DTO.request.Project.VoteDeletionRequest;
 import io.roa.secretmanger.DTO.response.ApiRes;
 import io.roa.secretmanger.DTO.response.AuditLogResponse;
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,9 +49,13 @@ public class AdminController implements AdminEndpointDoc {
     }
 
     @PatchMapping("/users/{userId}/deactivate")
-    public ApiRes<Void> deactivateUser(@PathVariable UUID userId) {
-        adminService.deactivateUser(userId);
-        return ApiRes.success("User deactivated", null);
+    public ResponseEntity<ApiRes<Void>> deactivateUser(
+            @PathVariable UUID userId,
+            @RequestBody(required = false) DeactivateUserRequest request) {
+
+        Set<UUID> adminIds = request != null ? request.adminIds() : null;
+        adminService.deactivateUser(userId, adminIds);
+        return ResponseEntity.ok(ApiRes.success());
     }
 
     @PatchMapping("/users/{userId}/activate")
@@ -93,12 +99,14 @@ public class AdminController implements AdminEndpointDoc {
         projectService.delete(projectId, adminIds);
         return ApiRes.success("Project and all associated credentials deleted", null);
     }
+
     @GetMapping("/projects/all")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiRes<PageResponse<ProjectSummary>> getAllProjects(
             @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
         return ApiRes.success(projectService.getAllProjects(pageable));
     }
+
     @PostMapping("/projects/{projectId}/deletion-vote")
     public ApiRes<DeletionVoteStatus> voteDeletion(
             @PathVariable UUID projectId,

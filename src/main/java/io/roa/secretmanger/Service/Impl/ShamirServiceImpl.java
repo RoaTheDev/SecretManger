@@ -2,7 +2,6 @@ package io.roa.secretmanger.Service.Impl;
 
 import com.codahale.shamir.Scheme;
 import io.roa.secretmanger.Exception.ResourceNotFoundException;
-import io.roa.secretmanger.Exception.ShamirAlreadyInitializedException;
 import io.roa.secretmanger.Exception.ShamirReconstructionException;
 import io.roa.secretmanger.Model.Entity.ShamirShare;
 import io.roa.secretmanger.Model.Entity.User;
@@ -11,6 +10,7 @@ import io.roa.secretmanger.Repo.ShamirShareRepo;
 import io.roa.secretmanger.Repo.UserRepo;
 import io.roa.secretmanger.Service.CryptoService;
 import io.roa.secretmanger.Service.ShamirService;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,21 +26,17 @@ public class ShamirServiceImpl implements ShamirService {
     private final ShamirShareRepo shamirShareRepo;
     private final UserRepo userRepo;
     private final CryptoService cryptoService;
-
     @Value("${app.master-key}")
     private String masterKeyBase64;
-    
+
     @Transactional
     public void splitAndDistribute() {
-        List<User> admins = userRepo.findAllByRole(UserRole.ADMIN);
+        List<User> admins = userRepo.findAllByRoleAndActiveTrue(UserRole.ADMIN);
         if (admins.isEmpty()) {
-            throw new ResourceNotFoundException("No admin users found");
+            throw new ResourceNotFoundException("No active admin users found");
         }
 
-        if (shamirShareRepo.count() >= admins.size()) {
-            throw new ShamirAlreadyInitializedException(
-                    "Shamir shares have already been distributed");
-        }
+        shamirShareRepo.deleteAllInBatch();
 
         int n = admins.size();
         int k = (n / 2) + 1;
@@ -49,20 +45,22 @@ public class ShamirServiceImpl implements ShamirService {
         Map<Integer, byte[]> shares = scheme.split(
                 Base64.getDecoder().decode(masterKeyBase64));
 
+        List<ShamirShare> newShares = new ArrayList<>();
         int index = 1;
         for (User admin : admins) {
-            String shareBase64    = Base64.getEncoder().encodeToString(shares.get(index));
+            String shareBase64 = Base64.getEncoder().encodeToString(shares.get(index));
             String encryptedShare = cryptoService.encrypt(shareBase64);
 
             ShamirShare row = new ShamirShare();
             row.setAdmin(admin);
             row.setShareIndex(index);
             row.setEncryptedShare(encryptedShare);
-            shamirShareRepo.save(row);
+            newShares.add(row);
             index++;
         }
-    }
 
+        shamirShareRepo.saveAll(newShares);
+    }
     @Transactional(readOnly = true)
     public String reconstructMasterKey(Set<UUID> adminIds) {
         int n = (int) shamirShareRepo.count();
@@ -92,6 +90,7 @@ public class ShamirServiceImpl implements ShamirService {
             throw new ShamirReconstructionException("Master key reconstruction failed", e);
         }
     }
+
     @Transactional(readOnly = true)
     public boolean isInitialized() {
         return shamirShareRepo.count() > 0;

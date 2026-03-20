@@ -1,6 +1,5 @@
 package io.roa.secretmanger.Mapper;
 
-import io.roa.secretmanger.DTO.projection.UserSummaryProjection;
 import io.roa.secretmanger.DTO.response.UserSummary;
 import io.roa.secretmanger.Model.Entity.User;
 import org.mapstruct.Mapper;

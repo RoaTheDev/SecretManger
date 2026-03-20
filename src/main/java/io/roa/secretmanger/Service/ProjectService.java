@@ -23,6 +23,6 @@ public interface ProjectService {
     ProjectDetail getDetail(UUID projectId);
     void delete(UUID projectId, Set<UUID> adminIds);
     boolean isMember(UUID projectId, UUID userId);
-    void executeProjectDeletion(UUID projectId);
+    void executeProjectDeletion(UUID projectId,Set<UUID> adminIds);
 
 }

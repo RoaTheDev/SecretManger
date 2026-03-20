@@ -134,7 +134,8 @@ public class ProjectServiceImpl implements ProjectService {
     @Audited(action = "PROJECT_DELETION_APPROVED", targetType = "PROJECT")
     @Transactional
     @CacheEvict(value = CacheConfig.MEMBERSHIP, allEntries = true)
-    public void executeProjectDeletion(UUID projectId) {
+    public void executeProjectDeletion(UUID projectId,Set<UUID> adminIds) {
+        shamirService.reconstructMasterKey(adminIds);
         projectRepo.deleteMembersByProjectId(projectId);
         projectRepo.deleteCredentialsByProjectId(projectId);
         projectRepo.deleteById(projectId);

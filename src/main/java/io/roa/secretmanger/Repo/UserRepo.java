@@ -18,7 +18,11 @@ import java.util.UUID;
 public interface UserRepo extends JpaRepository<User, UUID> {
 
     Optional<User> findByEmail(String email);
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role AND u.isActive = TRUE")
+    long countByRoleAndActiveTrue(@Param("role") UserRole role);
 
+    @Query("SELECT u FROM User u WHERE u.role = :role AND u.isActive = TRUE")
+    List<User> findAllByRoleAndActiveTrue(@Param("role") UserRole role);
     boolean existsByEmail(String email);
 
     long countByRole(UserRole role);

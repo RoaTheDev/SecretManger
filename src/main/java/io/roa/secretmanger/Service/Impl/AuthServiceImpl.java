@@ -8,8 +8,10 @@ import io.roa.secretmanger.Exception.ResourceNotFoundException;
 import io.roa.secretmanger.Exception.UnauthorizedException;
 import io.roa.secretmanger.Mapper.UserMapper;
 import io.roa.secretmanger.Model.Entity.User;
+import io.roa.secretmanger.Model.Value.UserRole;
 import io.roa.secretmanger.Repo.UserRepo;
 import io.roa.secretmanger.Service.AuthService;
+import io.roa.secretmanger.Service.ShamirService;
 import io.roa.secretmanger.Util.CookieUtil;
 import io.roa.secretmanger.Util.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,7 +33,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil;
     private final CookieUtil cookieUtil;
     private final UserMapper userMapper;
-
+    private final ShamirService shamirService;
     @Transactional
     public void register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
@@ -44,6 +46,10 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setRole(request.role());
         userRepository.save(user);
+
+        if (request.role() == UserRole.ADMIN) {
+            shamirService.splitAndDistribute();
+        }
     }
 
     @Transactional(readOnly = true)

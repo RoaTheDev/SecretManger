@@ -1,6 +1,7 @@
 package io.roa.secretmanger.Controller.docs;
 
 import io.roa.secretmanger.DTO.projection.UserSummaryProjection;
+import io.roa.secretmanger.DTO.request.Auth.DeactivateUserRequest;
 import io.roa.secretmanger.DTO.response.ApiRes;
 import io.roa.secretmanger.DTO.response.AuditLogResponse;
 import io.roa.secretmanger.DTO.response.PageResponse;
@@ -14,7 +15,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.UUID;
@@ -71,12 +74,17 @@ public interface AdminEndpointDoc {
 
 
     @Operation(summary = "Deactivate a user",
-            description = "Deactivates a user account immediately. The user loses login access. Existing votes and audit records are preserved.")
+            description = "Deactivates a user account immediately. For regular users, no body is required. For admin users, a quorum of other admin IDs must be provided in the request body.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "User deactivated successfully",
                     content = @Content(mediaType = "application/json",
                             examples = @ExampleObject(value = """
                                     {"success": true, "message": "User deactivated", "data": null, "errors": null}
+                                    """))),
+            @ApiResponse(responseCode = "400", description = "Validation error (e.g. last admin, already deactivated, self-inclusion in quorum)",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                                    {"success": false, "message": "Cannot deactivate the last active admin", "data": null, "errors": null}
                                     """))),
             @ApiResponse(responseCode = "404", description = "User not found",
                     content = @Content(mediaType = "application/json",
@@ -94,10 +102,10 @@ public interface AdminEndpointDoc {
                                     {"success": false, "message": "You don't have permission to perform this action", "data": null, "errors": null}
                                     """)))
     })
-    ApiRes<Void> deactivateUser(
+    ResponseEntity<ApiRes<Void>> deactivateUser(
             @Parameter(description = "UUID of the user to deactivate", required = true)
-            @PathVariable UUID userId);
-
+            @PathVariable UUID userId,
+            @RequestBody(required = false) DeactivateUserRequest request);
 
     @Operation(summary = "Activate a user",
             description = "Re-activates a previously deactivated user. The user can log in again immediately.")

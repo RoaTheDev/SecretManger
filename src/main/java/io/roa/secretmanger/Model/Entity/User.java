@@ -49,9 +49,8 @@ public class User extends BaseEntity implements UserDetails {
     @OneToMany(mappedBy = "voter", fetch = FetchType.LAZY)
     private List<ApprovalVote> votes;
 
-    @OneToOne(mappedBy = "admin", fetch = FetchType.LAZY)
-    private ShamirShare shamirShare;
-
+//    @OneToOne(mappedBy = "admin", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+//    private ShamirShare shamirShare;
 
     @Override
     public @NonNull Collection<? extends GrantedAuthority> getAuthorities() {

@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Repository
 public interface ShamirShareRepo extends JpaRepository<ShamirShare, UUID> {
-
+    void deleteByAdminId(UUID adminId);
     Optional<ShamirShare> findByAdminId(UUID adminId);
 
     boolean existsByAdminId(UUID adminId);

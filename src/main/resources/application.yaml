@@ -2,12 +2,17 @@ spring:
   application:
     name: SecretManager_ADITI_FINAL
 
-  profiles:
-    active: local
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
 
   jpa:
     hibernate:
-      ddl-auto: validate            # schema.sql handles structure, hibernate just validates
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
@@ -15,7 +20,9 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
           time_zone: UTC
-
+  sql:
+    init:
+      mode: never
   cache:
     type: caffeine
 
@@ -26,7 +33,7 @@ springdoc:
 
 scalar:
   enabled: true
-  url: http://localhost:8080/v3/api-docs
+  url: ${SCALAR_URL:http://localhost:8080/v3/api-docs}
   path: /docs
   dark-mode: on
   authentication:
@@ -39,3 +46,27 @@ management:
     web:
       exposure:
         include: health, info, beans
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token:
+    expiration: ${JWT_ACCESS_EXPIRATION:900000}
+  refresh-token:
+    expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+  cookie-name: ${JWT_COOKIE_NAME:refresh-cookie}
+
+app:
+  master-key: ${APP_MASTER_KEY}
+  cookie:
+    domain: ${APP_COOKIE_DOMAIN:""}
+    secure: ${APP_COOKIE_SECURE:false}
+  access:
+    project-tier-ttl-hours: ${PROJECT_TIER_TTL_HOURS:1}
+    admin-tier-ttl-hours: ${ADMIN_TIER_TTL_HOURS:1}
+
+logging:
+  level:
+    io.roa.secretsmanager: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE

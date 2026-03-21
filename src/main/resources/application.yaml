@@ -10,9 +10,12 @@ spring:
       maximum-pool-size: 10
       minimum-idle: 2
 
+  sql:
+    init:
+      mode: never
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
@@ -20,9 +23,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
           time_zone: UTC
-  sql:
-    init:
-      mode: never
+
   cache:
     type: caffeine
 
@@ -58,7 +59,7 @@ jwt:
 app:
   master-key: ${APP_MASTER_KEY}
   cookie:
-    domain: ${APP_COOKIE_DOMAIN:""}
+    domain: ${APP_COOKIE_DOMAIN:}
     secure: ${APP_COOKIE_SECURE:false}
   access:
     project-tier-ttl-hours: ${PROJECT_TIER_TTL_HOURS:1}

@@ -3,6 +3,9 @@
 A secure credential management system built for engineering teams. Stores encrypted secrets with multi-party approval, role-based access control, Shamir's Secret Sharing for the master key, and a full audit trail on every sensitive action.
 
 Built with **Spring Boot 3**, **PostgreSQL**, and **Java 21**.
+---
+## DB Design
+![alt text](assets/db_design.svg)
 
 ---
 

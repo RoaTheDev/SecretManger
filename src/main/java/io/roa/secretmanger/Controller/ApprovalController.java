@@ -4,9 +4,11 @@ package io.roa.secretmanger.Controller;
 import io.roa.secretmanger.Controller.docs.ApprovalEndpointDoc;
 import io.roa.secretmanger.DTO.request.ApprovalRequest.CastVoteRequest;
 import io.roa.secretmanger.DTO.response.ApiRes;
+import io.roa.secretmanger.DTO.response.ApprovalRequest.AccessRequestedResponse;
 import io.roa.secretmanger.DTO.response.ApprovalRequest.ApprovalRequestSummary;
 import io.roa.secretmanger.DTO.response.ApprovalRequest.VoteCastResponse;
 import io.roa.secretmanger.DTO.response.PageResponse;
+import io.roa.secretmanger.Model.Value.ApprovalType;
 import io.roa.secretmanger.Service.ApprovalService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,5 +42,14 @@ public class ApprovalController implements ApprovalEndpointDoc {
             @ParameterObject
             @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
         return ApiRes.success(approvalService.getPendingForCurrentUser(pageable));
+    }
+
+    @PostMapping("/user-action/{targetUserId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiRes<AccessRequestedResponse> requestUserAction(
+            @PathVariable UUID targetUserId,
+            @RequestParam ApprovalType type) {
+        return ApiRes.success("Request created",
+                approvalService.requestUserAction(targetUserId, type));
     }
 }

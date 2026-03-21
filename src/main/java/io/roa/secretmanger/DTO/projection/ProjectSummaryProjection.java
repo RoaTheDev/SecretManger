@@ -1,4 +1,4 @@
-package io.roa.secretmanger.DTO;
+package io.roa.secretmanger.DTO.projection;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

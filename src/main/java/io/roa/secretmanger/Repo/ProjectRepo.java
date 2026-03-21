@@ -1,7 +1,7 @@
 package io.roa.secretmanger.Repo;
 
 
-import io.roa.secretmanger.DTO.ProjectSummaryProjection;
+import io.roa.secretmanger.DTO.projection.ProjectSummaryProjection;
 import io.roa.secretmanger.DTO.projection.MemberProjection;
 import io.roa.secretmanger.Model.Entity.Project;
 import org.springframework.data.domain.Page;

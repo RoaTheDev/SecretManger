@@ -12,6 +12,8 @@ public interface ApprovalMapper {
 
     @Mapping(source = "credential.id", target = "credentialId")
     @Mapping(source = "credential.name", target = "credentialName")
+    @Mapping(source = "targetUser.id", target = "targetUserId")
+    @Mapping(source = "targetUser.name", target = "targetUserName")
     @Mapping(source = "requestedBy.name", target = "requestedBy")
     @Mapping(target = "approveCount", ignore = true)
     @Mapping(target = "rejectCount", ignore = true)

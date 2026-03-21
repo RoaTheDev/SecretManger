@@ -11,6 +11,5 @@ import java.util.UUID;
 public interface ApprovalVoteRepo extends JpaRepository<ApprovalVote, UUID> {
 
     long countByRequestIdAndVote(UUID requestId, VoteChoice vote);
-
     boolean existsByRequestIdAndVoterId(UUID requestId, UUID voterId);
 }

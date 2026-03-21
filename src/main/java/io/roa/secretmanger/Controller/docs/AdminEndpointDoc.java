@@ -104,8 +104,7 @@ public interface AdminEndpointDoc {
     })
     ResponseEntity<ApiRes<Void>> deactivateUser(
             @Parameter(description = "UUID of the user to deactivate", required = true)
-            @PathVariable UUID userId,
-            @RequestBody(required = false) DeactivateUserRequest request);
+            @PathVariable UUID userId);
 
     @Operation(summary = "Activate a user",
             description = "Re-activates a previously deactivated user. The user can log in again immediately.")
@@ -131,7 +130,7 @@ public interface AdminEndpointDoc {
                                     {"success": false, "message": "You don't have permission to perform this action", "data": null, "errors": null}
                                     """)))
     })
-    ApiRes<Void> activateUser(
+    ResponseEntity<ApiRes<Void>> activateUser(
             @Parameter(description = "UUID of the user to activate", required = true)
             @PathVariable UUID userId);
 

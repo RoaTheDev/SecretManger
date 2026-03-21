@@ -120,6 +120,7 @@ public class CredentialServiceImpl implements CredentialService {
             );
         }
 
+
         var approvedRequest = approvalRequestRepo
                 .findByCredentialIdAndRequestedByIdAndStatus(
                         credentialId, currentUserId, ApprovalStatus.APPROVED)
@@ -163,6 +164,10 @@ public class CredentialServiceImpl implements CredentialService {
     }
 
     private void guardMembership(UUID projectId) {
+        User currentUser = securityContext.getCurrentUser();
+        if (currentUser.getRole() == UserRole.ADMIN) {
+            return;
+        }
         UUID userId = securityContext.getCurrentUserId();
         if (!projectService.isMember(projectId, userId)) {
             throw new ProjectAccessDeniedException("You are not a member of this project");

@@ -1,7 +1,7 @@
 package io.roa.secretmanger.Controller;
 
 import io.roa.secretmanger.Controller.docs.CredentialEndpointDoc;
-import io.roa.secretmanger.DTO.request.ApprovalRequest.AccessRequestedResponse;
+import io.roa.secretmanger.DTO.response.ApprovalRequest.AccessRequestedResponse;
 import io.roa.secretmanger.DTO.request.ApprovalRequest.CreateCredentialRequest;
 import io.roa.secretmanger.DTO.request.Project.UpdateCredentialRequest;
 import io.roa.secretmanger.DTO.response.ApiRes;

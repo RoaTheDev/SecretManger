@@ -2,28 +2,24 @@ package io.roa.secretmanger.Service.Impl;
 
 import io.roa.secretmanger.Annotation.Audited;
 import io.roa.secretmanger.Config.CacheConfig;
-import io.roa.secretmanger.DTO.request.ApprovalRequest.AccessRequestedResponse;
 import io.roa.secretmanger.DTO.request.ApprovalRequest.CastVoteRequest;
+import io.roa.secretmanger.DTO.response.ApprovalRequest.AccessRequestedResponse;
 import io.roa.secretmanger.DTO.response.ApprovalRequest.ApprovalRequestSummary;
-import io.roa.secretmanger.DTO.response.PageResponse;
 import io.roa.secretmanger.DTO.response.ApprovalRequest.VoteCastResponse;
+import io.roa.secretmanger.DTO.response.PageResponse;
 import io.roa.secretmanger.Exception.*;
 import io.roa.secretmanger.Mapper.ApprovalMapper;
 import io.roa.secretmanger.Model.Entity.ApprovalRequest;
 import io.roa.secretmanger.Model.Entity.ApprovalVote;
 import io.roa.secretmanger.Model.Entity.Credential;
 import io.roa.secretmanger.Model.Entity.User;
-import io.roa.secretmanger.Model.Value.AccessTier;
-import io.roa.secretmanger.Model.Value.ApprovalStatus;
-import io.roa.secretmanger.Model.Value.UserRole;
-import io.roa.secretmanger.Model.Value.VoteChoice;
-import io.roa.secretmanger.Repo.ApprovalRequestRepo;
-import io.roa.secretmanger.Repo.ApprovalVoteRepo;
-import io.roa.secretmanger.Repo.CredentialRepo;
-import io.roa.secretmanger.Repo.UserRepo;
+import io.roa.secretmanger.Model.Value.*;
+import io.roa.secretmanger.Repo.*;
 import io.roa.secretmanger.Service.ApprovalService;
+import io.roa.secretmanger.Service.ShamirService;
 import io.roa.secretmanger.Util.SecurityContextUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ApprovalServiceImpl implements ApprovalService {
@@ -43,7 +40,8 @@ public class ApprovalServiceImpl implements ApprovalService {
     private final UserRepo userRepo;
     private final ApprovalMapper approvalMapper;
     private final SecurityContextUtil securityContext;
-
+    private final ShamirService shamirService;
+    private final ShamirShareRepo shamirShareRepo;
     @Value("${app.access.project-tier-ttl-hours:1}")
     private int projectTierTtlHours;
 
@@ -86,13 +84,15 @@ public class ApprovalServiceImpl implements ApprovalService {
             throw new AlreadyVotedException("You have already voted on this request");
         }
 
-        ApprovalRequest request = approvalRequestRepo.findById(requestId).orElseThrow(() -> new ResourceNotFoundException("Approval request not found"));
+        ApprovalRequest request = approvalRequestRepo.findById(requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("Approval request not found"));
 
         if (request.getStatus() != ApprovalStatus.PENDING) {
             throw new ValidationException("This request is no longer pending");
         }
 
-        if (request.getRequestedBy().getId().equals(currentUser.getId())) {
+        if (request.getType() == ApprovalType.CREDENTIAL_ACCESS
+            && request.getRequestedBy().getId().equals(currentUser.getId())) {
             throw new UnauthorizedException("You cannot vote on your own request");
         }
 
@@ -106,7 +106,6 @@ public class ApprovalServiceImpl implements ApprovalService {
 
         return new VoteCastResponse(request.getId(), request.getStatus(), request.isQuorumReached());
     }
-
 
     @Transactional(readOnly = true)
     public PageResponse<ApprovalRequestSummary> getPendingForCurrentUser(Pageable pageable) {
@@ -123,16 +122,26 @@ public class ApprovalServiceImpl implements ApprovalService {
                             long rejectCount = approvalVoteRepo
                                     .countByRequestIdAndVote(projection.getId(), VoteChoice.REJECT);
 
+                            log.trace("Harro {}", summary.toString());
                             return new ApprovalRequestSummary(
-                                    summary.id(), summary.credentialId(), summary.credentialName(),
-                                    summary.requestedBy(), summary.accessTier(), summary.status(),
-                                    summary.quorumRequired(), approveCount, rejectCount,
+                                    summary.id(),
+                                    summary.credentialId(),
+                                    summary.credentialName(),
+                                    summary.targetUserId(),
+                                    summary.targetUserName(),
+                                    summary.requestedBy(),
+                                    summary.accessTier(),
+                                    summary.status(),
+                                    summary.type(),
+                                    summary.quorumRequired(),
+                                    approveCount,
+                                    rejectCount,
+                                    approvalVoteRepo.existsByRequestIdAndVoterId(projection.getId(), currentUserId),
                                     summary.createdAt()
                             );
                         })
         );
     }
-
 
     private void updateRequestStatus(ApprovalRequest request) {
         long approveCount = approvalVoteRepo
@@ -145,10 +154,16 @@ public class ApprovalServiceImpl implements ApprovalService {
             request.setQuorumReached(true);
             request.setResolvedAt(LocalDateTime.now());
 
-            int ttlHours = request.getAccessTier() == AccessTier.ADMIN
-                    ? adminTierTtlHours
-                    : projectTierTtlHours;
-            request.setExpiresAt(LocalDateTime.now().plusHours(ttlHours));
+            if (request.getType() == ApprovalType.USER_DEACTIVATION) {
+                executeDeactivation(request.getTargetUserId());
+            } else if (request.getType() == ApprovalType.USER_ACTIVATION) {
+                executeActivation(request.getTargetUserId());
+            } else {
+                int ttlHours = request.getAccessTier() == AccessTier.ADMIN
+                        ? adminTierTtlHours
+                        : projectTierTtlHours;
+                request.setExpiresAt(LocalDateTime.now().plusHours(ttlHours));
+            }
 
         } else if (rejectCount > 0) {
             request.setStatus(ApprovalStatus.REJECTED);
@@ -156,6 +171,73 @@ public class ApprovalServiceImpl implements ApprovalService {
         }
 
         approvalRequestRepo.save(request);
+    }
+
+    private void executeDeactivation(UUID targetUserId) {
+        User user = userRepo.findById(targetUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        user.setActive(false);
+        userRepo.save(user);
+
+        if (user.getRole() == UserRole.ADMIN) {
+            shamirShareRepo.deleteByAdminId(targetUserId);
+            shamirService.splitAndDistribute();
+        }
+    }
+
+    private void executeActivation(UUID targetUserId) {
+        User user = userRepo.findById(targetUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        user.setActive(true);
+        userRepo.save(user);
+
+        if (user.getRole() == UserRole.ADMIN) {
+            shamirService.splitAndDistribute();
+        }
+    }
+
+    @Transactional
+    public AccessRequestedResponse requestUserAction(UUID targetUserId, ApprovalType type) {
+        User currentUser = securityContext.getCurrentUser();
+        User targetUser = userRepo.findById(targetUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        approvalRequestRepo.findByTargetUserIdAndTypeAndStatus(
+                        targetUserId, type, ApprovalStatus.PENDING)
+                .ifPresent(r -> {
+                    throw new PendingRequestExistsException(
+                            "A pending request already exists for this action");
+                });
+
+        int quorum = calculateUserActionQuorum(targetUser);
+
+        ApprovalRequest request = new ApprovalRequest();
+        request.setType(type);
+        request.setTargetUserId(targetUserId);
+        request.setRequestedBy(currentUser);
+        request.setQuorumRequired(quorum);
+        request.setStatus(ApprovalStatus.PENDING);
+        request.setAccessTier(targetUser.getRole() == UserRole.ADMIN
+                ? AccessTier.ADMIN
+                : AccessTier.PROJECT);
+
+        ApprovalRequest saved = approvalRequestRepo.save(request);
+
+        if (quorum == 1) {
+            ApprovalVote vote = new ApprovalVote();
+            vote.setRequest(saved);
+            vote.setVoter(currentUser);
+            vote.setVote(VoteChoice.APPROVE);
+            approvalVoteRepo.save(vote);
+            updateRequestStatus(saved);
+        }
+
+        return new AccessRequestedResponse(saved.getId(), saved.getStatus(), saved.getQuorumRequired());
+    }
+
+    private int calculateUserActionQuorum(User targetUser) {
+        return targetUser.getRole() == UserRole.ADMIN ? ((int) userRepo.countByRoleAndActiveTrue(UserRole.ADMIN) / 2) + 1
+                : 1;
     }
 
     private int calculateQuorum(Credential credential) {
@@ -170,9 +252,9 @@ public class ApprovalServiceImpl implements ApprovalService {
         }
 
         return switch (credential.getApprovalPolicy()) {
-            case RELAXED  -> 1;
+            case RELAXED -> 1;
             case STANDARD -> (int) Math.min(2, activeApprovers);
-            case STRICT   -> (int) Math.min(3, activeApprovers);
+            case STRICT -> (int) Math.min(3, activeApprovers);
         };
     }
 }

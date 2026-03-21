@@ -1,6 +1,6 @@
 package io.roa.secretmanger.Mapper;
 
-import io.roa.secretmanger.DTO.ProjectSummaryProjection;
+import io.roa.secretmanger.DTO.projection.ProjectSummaryProjection;
 import io.roa.secretmanger.DTO.projection.MemberProjection;
 import io.roa.secretmanger.DTO.response.Project.MemberSummary;
 import io.roa.secretmanger.DTO.response.Project.ProjectSummary;

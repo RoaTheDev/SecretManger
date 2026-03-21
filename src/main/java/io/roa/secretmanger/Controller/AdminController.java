@@ -3,12 +3,12 @@ package io.roa.secretmanger.Controller;
 
 import io.roa.secretmanger.Controller.docs.AdminEndpointDoc;
 import io.roa.secretmanger.DTO.projection.UserSummaryProjection;
-import io.roa.secretmanger.DTO.request.Auth.DeactivateUserRequest;
 import io.roa.secretmanger.DTO.request.Project.VoteDeletionRequest;
 import io.roa.secretmanger.DTO.response.ApiRes;
 import io.roa.secretmanger.DTO.response.AuditLogResponse;
 import io.roa.secretmanger.DTO.response.PageResponse;
 import io.roa.secretmanger.DTO.response.Project.DeletionVoteStatus;
+import io.roa.secretmanger.DTO.response.Project.ProjectDeletionVoteSummary;
 import io.roa.secretmanger.DTO.response.Project.ProjectSummary;
 import io.roa.secretmanger.DTO.response.Shamir.ShamirStatusResponse;
 import io.roa.secretmanger.Mapper.AuditMapper;
@@ -25,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -48,20 +49,17 @@ public class AdminController implements AdminEndpointDoc {
         return ApiRes.success(adminService.getAllUsers(pageable));
     }
 
-    @PatchMapping("/users/{userId}/deactivate")
-    public ResponseEntity<ApiRes<Void>> deactivateUser(
-            @PathVariable UUID userId,
-            @RequestBody(required = false) DeactivateUserRequest request) {
 
-        Set<UUID> adminIds = request != null ? request.adminIds() : null;
-        adminService.deactivateUser(userId, adminIds);
-        return ResponseEntity.ok(ApiRes.success());
+    @PatchMapping("/users/{userId}/deactivate")
+    public ResponseEntity<ApiRes<Void>> deactivateUser(@PathVariable UUID userId) {
+        adminService.deactivateUser(userId);
+        return ResponseEntity.ok(ApiRes.success("Deactivation requested", null));
     }
 
     @PatchMapping("/users/{userId}/activate")
-    public ApiRes<Void> activateUser(@PathVariable UUID userId) {
+    public ResponseEntity<ApiRes<Void>> activateUser(@PathVariable UUID userId) {
         adminService.activateUser(userId);
-        return ApiRes.success("User activated", null);
+        return ResponseEntity.ok(ApiRes.success("Activation requested", null));
     }
 
 
@@ -99,7 +97,11 @@ public class AdminController implements AdminEndpointDoc {
         projectService.delete(projectId, adminIds);
         return ApiRes.success("Project and all associated credentials deleted", null);
     }
-
+    @GetMapping("/deletion-votes")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiRes<List<ProjectDeletionVoteSummary>> getOngoingDeletionVotes() {
+        return ApiRes.success(adminService.getOngoingDeletionVotes());
+    }
     @GetMapping("/projects/all")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiRes<PageResponse<ProjectSummary>> getAllProjects(

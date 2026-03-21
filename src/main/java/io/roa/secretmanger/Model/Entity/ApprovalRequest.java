@@ -2,6 +2,7 @@ package io.roa.secretmanger.Model.Entity;
 
 import io.roa.secretmanger.Model.Value.AccessTier;
 import io.roa.secretmanger.Model.Value.ApprovalStatus;
+import io.roa.secretmanger.Model.Value.ApprovalType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,11 +10,12 @@ import lombok.experimental.FieldNameConstants;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "approval_requests", indexes = {
         @Index(name = "idx_approval_requests_credential", columnList = "credential_id"),
-        @Index(name = "idx_approval_requests_status",    columnList = "status"),
+        @Index(name = "idx_approval_requests_status", columnList = "status"),
         @Index(name = "idx_approval_requests_requester", columnList = "requested_by")
 })
 @Getter
@@ -22,9 +24,11 @@ import java.util.List;
 public class ApprovalRequest extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "credential_id", nullable = false)
+    @JoinColumn(name = "credential_id")
     private Credential credential;
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "target_user_id", insertable = false, updatable = false)
+    private User targetUser;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "requested_by", nullable = false)
     private User requestedBy;
@@ -51,4 +55,11 @@ public class ApprovalRequest extends BaseEntity {
 
     @OneToMany(mappedBy = "request", fetch = FetchType.LAZY)
     private List<ApprovalVote> votes;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private ApprovalType type = ApprovalType.CREDENTIAL_ACCESS;
+
+    @Column(name = "target_user_id")
+    private UUID targetUserId;
+
 }

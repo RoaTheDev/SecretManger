@@ -3,6 +3,7 @@ package io.roa.secretmanger.Repo;
 import io.roa.secretmanger.DTO.projection.ApprovalRequestSummaryProjection;
 import io.roa.secretmanger.Model.Entity.ApprovalRequest;
 import io.roa.secretmanger.Model.Value.ApprovalStatus;
+import io.roa.secretmanger.Model.Value.ApprovalType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,6 +21,9 @@ public interface ApprovalRequestRepo extends JpaRepository<ApprovalRequest, UUID
             SELECT ar.id                        AS id,
                    ar.accessTier               AS accessTier,
                    ar.status                   AS status,
+                   ar.type                     AS type,
+                   ar.targetUserId             AS targetUserId,
+                   ar.targetUser               AS targetUser,
                    ar.quorumRequired           AS quorumRequired,
                    ar.quorumReached            AS quorumReached,
                    ar.createdAt                AS createdAt,
@@ -27,8 +31,13 @@ public interface ApprovalRequestRepo extends JpaRepository<ApprovalRequest, UUID
                    ar.credential               AS credential,
                    ar.requestedBy              AS requestedBy
             FROM ApprovalRequest ar
+            LEFT JOIN ar.credential
+            LEFT JOIN ar.targetUser
             WHERE ar.status = 'PENDING'
-            AND ar.requestedBy.id != :userId
+            AND (
+                ar.type != 'CREDENTIAL_ACCESS'
+                OR ar.requestedBy.id != :userId
+            )
             AND NOT EXISTS (
                 SELECT v FROM ApprovalVote v
                 WHERE v.request.id = ar.id
@@ -64,5 +73,7 @@ public interface ApprovalRequestRepo extends JpaRepository<ApprovalRequest, UUID
             UUID requestedById,
             ApprovalStatus status);
 
+    Optional<ApprovalRequest> findByTargetUserIdAndTypeAndStatus(
+            UUID targetUserId, ApprovalType type, ApprovalStatus status);
 //    Optional<ApprovalRequest> findById(UUID id);
 }

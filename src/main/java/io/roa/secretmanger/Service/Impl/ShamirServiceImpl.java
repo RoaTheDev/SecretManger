@@ -63,7 +63,7 @@ public class ShamirServiceImpl implements ShamirService {
     }
     @Transactional(readOnly = true)
     public String reconstructMasterKey(Set<UUID> adminIds) {
-        int n = (int) shamirShareRepo.count();
+        int n = (int) userRepo.countByRoleAndActiveTrue(UserRole.ADMIN);
         int k = (n / 2) + 1;
 
         if (adminIds.size() < k) {
@@ -90,7 +90,6 @@ public class ShamirServiceImpl implements ShamirService {
             throw new ShamirReconstructionException("Master key reconstruction failed", e);
         }
     }
-
     @Transactional(readOnly = true)
     public boolean isInitialized() {
         return shamirShareRepo.count() > 0;

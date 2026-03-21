@@ -1,6 +1,6 @@
 package io.roa.secretmanger.Controller.docs;
 
-import io.roa.secretmanger.DTO.request.ApprovalRequest.AccessRequestedResponse;
+import io.roa.secretmanger.DTO.response.ApprovalRequest.AccessRequestedResponse;
 import io.roa.secretmanger.DTO.request.ApprovalRequest.CreateCredentialRequest;
 import io.roa.secretmanger.DTO.response.ApiRes;
 import io.roa.secretmanger.DTO.response.PageResponse;
